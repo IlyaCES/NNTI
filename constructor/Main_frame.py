@@ -3,19 +3,17 @@ from tkinter import filedialog
 from tkinter import messagebox as msg
 from tkinter.ttk import Notebook
 
-class TranslateBook(tk.Tk):
+class NNI(tk.Tk):
 
-    x = 200
-    y = 120
-    cordx = 200
-    cordy = 120
+    listbox_items_builder = ['Default Enter layer']
+    layerBuffer = []
 
     def __init__(self):
         super().__init__()
 
     #Windows option
         self.title("NNI")
-        self.geometry("1200x700")
+        self.geometry("1200x430")
         self.resizable(width=False, height=False)
 
     #Create tab
@@ -59,20 +57,28 @@ class TranslateBook(tk.Tk):
         self.browse_button = tk.Button(builder_tab, text='Обзор', font='Arial 10')
         self.browse_button.bind('<Button-1>', self.delete)
         self.browse_button.place(x=1120, y=10)
-        self.browse_button = tk.Button(builder_tab, text='Начало', font='Arial 10')
-        self.browse_button.bind('<Button-1>', self.start)
-        self.browse_button.place(x=1020, y=320)
-        self.browse_button = tk.Button(builder_tab, text='Остановка', font='Arial 10')
-        self.browse_button.bind('<Button-1>', self.stop)
-        self.browse_button.place(x=1080, y=320)
+        self.start_button = tk.Button(builder_tab, text='Начало', font='Arial 10')
+        self.start_button.bind('<Button-1>', self.start)
+        self.start_button.place(x=1020, y=320)
+        self.stop_button = tk.Button(builder_tab, text='Остановка', font='Arial 10')
+        self.stop_button.bind('<Button-1>', self.stop)
+        self.stop_button.place(x=1080, y=320)
 
-        self.browse_button = tk.Button(self.tasks_canvas, width=20, height=2, text='Default Enter layer', font='Arial 10')
-        self.browse_button.bind('<Button-1>', self.openMenuEnter)
-        self.browse_button.place(x=200, y=30)
+        #self.enretLayer_button = tk.Button(self.tasks_canvas, width=20, height=2, text='Default Enter layer', font='Arial 10')
+        #self.enretLayer_button.bind('<Button-1>', self.openMenuEnter)
+        #self.enretLayer_button.place(x=200, y=30)
 
-        self.browse_button = tk.Button(self.tasks_canvas, state=tk.DISABLED, width=20, height=2,
-                                       text='Default Exit layer', font='Arial 10')
-        self.browse_button.place(x=self.cordx, y=self.cordy)
+        self.plus = self.tasks_canvas.create_text(525, 45, text="+",
+                                                  justify=tk.CENTER, font="Verdana 18", activefill='lightgreen')
+        self.tasks_canvas.tag_bind(self.plus, '<Button-1>', self.new_layer)
+
+        self.minus = self.tasks_canvas.create_text(525, 75, text="-",
+                                                  justify=tk.CENTER, font="Verdana 20", activefill='lightgreen')
+        self.tasks_canvas.tag_bind(self.minus, '<Button-1>', self.delete_layer)
+
+        #self.exitLayer_button = tk.Button(self.tasks_canvas, state=tk.DISABLED, width=20, height=2,
+        #                               text='Default Exit layer', font='Arial 10')
+        #self.exitLayer_button.place(x=self.cordx, y=self.cordy)
 
     #Create Entrys
         # visiable Entrys
@@ -90,13 +96,9 @@ class TranslateBook(tk.Tk):
         self.rho = tk.Entry(builder_tab, width=74)
         self.rho.place_forget()
 
-        self.tasks_canvas.create_line(285, 60, 285, 120, fill='black',
-                                      width=2, arrow=tk.LAST,
-                                      arrowshape="10 20 10")
-
-        self.plus = self.tasks_canvas.create_text(305, 90, text="+",
-                justify=tk.CENTER, font="Verdana 14", activefill='lightgreen')
-        self.tasks_canvas.tag_bind(self.plus, '<Button-1>', self.new_layer)
+        #self.tasks_canvas.create_line(285, 60, 285, 120, fill='black',
+        #                              width=2, arrow=tk.LAST,
+        #                              arrowshape="10 20 10")
 
 
         listbox_option_items = ['Adam', 'SGD', 'RMSProp', 'Adagrad', 'Adadelta']
@@ -106,6 +108,14 @@ class TranslateBook(tk.Tk):
 
         for item in listbox_option_items:
             self.listbox_options.insert(tk.END, item)
+
+        self.listbox_builder = tk.Listbox(self.tasks_canvas, width=75, height=8, font=('times', 10), exportselection=False)
+        self.listbox_builder.bind('<<ListboxSelect>>')
+        self.listbox_builder.place(x=50, y=30)
+
+        for item_metrik in self.listbox_items_builder:
+            self.listbox_builder.insert(tk.END, item_metrik)
+        self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
         listbox_items_metrik = ['binary_accuracy', 'categorical_accuracy', 'sparse_categorical_accuracy',
                                 'top_k_categorical_accuracy', 'sparse_top_k_categorical_accuracy']
@@ -171,6 +181,11 @@ class TranslateBook(tk.Tk):
         print(value)
 
     def new_layer(self, event):
+
+        if len(self.listbox_builder.curselection()) < 1:
+            msg.showerror("Error", "No layer selected")
+            return
+
         layer = tk.Toplevel(self)
         layer.title("Add layer")
         layer.geometry("450x270")
@@ -263,27 +278,176 @@ class TranslateBook(tk.Tk):
             layer.add_button.place(x=100, y=225)
 
     def add_Convolutional(self, layer):
-        print('add_Convolutional')
+        newClass = self.layerConvolutional()
+        selection = (self.listbox_builder.curselection())
+        if self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer':
+            newClass.number = selection[0]
+        else:
+            newClass.number = selection[0] + 1
+        self.listbox_items_builder.insert(selection[0]+1, newClass.name)
+        self.layerBuffer.insert(selection[0]+1, newClass)
+        newClass.kernelSize = layer.kernelSize.get()
+        newClass.filters = layer.filters.get()
+        print("kernel Size=", newClass.kernelSize)
+        print("Filters =", newClass.filters)
+        #for i in self.layerBuffer:
+        #    name = self.layerBuffer[i]
         layer.destroy()
+        self.listbox_builder.delete(0,tk.END)
+        for item in self.listbox_items_builder:
+            self.listbox_builder.insert(tk.END, item)
+        self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
     def add_MaxPooling(self, layer):
-        print('add_MaxPooling')
+        newClass = self.layerMaxPooling()
+        selection = (self.listbox_builder.curselection())
+        if self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer':
+            newClass.number = selection[0]
+        else:
+            newClass.number = selection[0] + 1
+        self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
+        self.layerBuffer.insert(selection[0] + 1, newClass)
+        newClass.poolSize = layer.poolSize.get()
+        print("poolSize=", newClass.poolSize)
+        # for i in self.layerBuffer:
+        #    name = self.layerBuffer[i]
         layer.destroy()
+        self.listbox_builder.delete(0, tk.END)
+        for item in self.listbox_items_builder:
+            self.listbox_builder.insert(tk.END, item)
+        self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
     def add_Dense(self, layer):
-        print('add_Dense')
+        newClass = self.layerDense()
+        selection = (self.listbox_builder.curselection())
+        if self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer':
+            newClass.number = selection[0]
+        else:
+            newClass.number = selection[0] + 1
+        self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
+        self.layerBuffer.insert(selection[0] + 1, newClass)
+        newClass.neurons = layer.neurons.get()
+        print("neurons=", newClass.neurons)
+        # for i in self.layerBuffer:
+        #    name = self.layerBuffer[i]
         layer.destroy()
+        self.listbox_builder.delete(0, tk.END)
+        for item in self.listbox_items_builder:
+            self.listbox_builder.insert(tk.END, item)
+        self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
     def add_Flatten(self, layer):
-        print('add_Flatten')
+        newClass = self.layerFlatten()
+        selection = (self.listbox_builder.curselection())
+        if self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer':
+            newClass.number = selection[0]
+        else:
+            newClass.number = selection[0] + 1
+        self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
+        self.layerBuffer.insert(selection[0] + 1, newClass)
+        # for i in self.layerBuffer:
+        #    name = self.layerBuffer[i]
         layer.destroy()
+        self.listbox_builder.delete(0, tk.END)
+        for item in self.listbox_items_builder:
+            self.listbox_builder.insert(tk.END, item)
+        self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
     def add_Dropout(self, layer):
-        print('add_Dropout')
+        newClass = self.layerDropout()
+        selection = (self.listbox_builder.curselection())
+        if self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer':
+            newClass.number = selection[0]
+        else:
+            newClass.number = selection[0] + 1
+        self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
+        self.layerBuffer.insert(selection[0] + 1, newClass)
+        # for i in self.layerBuffer:
+        #    name = self.layerBuffer[i]
+        newClass.dropNeurons = layer.dropNeurons.get()
+        print("dropNeurons", newClass.dropNeurons)
         layer.destroy()
+        self.listbox_builder.delete(0, tk.END)
+        for item in self.listbox_items_builder:
+            self.listbox_builder.insert(tk.END, item)
+        self.listbox_builder.insert(tk.END, 'Default Exit layer')
+
+        #self.cordy+= 10
+        #self.exitLayer_button.place(x=self.cordx, y=self.cordy)
+        #self.plus = self.tasks_canvas.create_text(305, self.cordy-40, text="+",
+        #                                          justify=tk.CENTER, font="Verdana 14", activefill='lightgreen')
+        #self.tasks_canvas.tag_bind(self.plus, '<Button-1>', self.new_layer)
+        #
+        #self.tasks_canvas.create_line(285, self.cordy-80, 285, self.cordy, fill='black',
+        #                              width=2, arrow=tk.LAST,
+        #                              arrowshape="10 20 10")
+        #
+        #self.dropoutLayer_button = tk.Button(self.tasks_canvas, width=20, height=2, text='Dropout',
+        #                                   font='Arial 10')
+        #self.dropoutLayer_button.bind('<Button-1>', self.openMenuEnter)
+        #self.dropoutLayer_button.place(x=200, y=self.cordy-self.y)
+
+    def delete_layer(self, event):
+        selection = (self.listbox_builder.curselection())
+
+        print(selection[0])
+
+        if (self.listbox_builder.get(tk.ANCHOR) == 'Default Enter layer') or (self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer'):
+            msg.showerror("Error", "Unable to delete static layers")
+            return
+
+        del self.listbox_items_builder[selection[0]]
+        del self.layerBuffer[selection[0]-1]
+
+        self.listbox_builder.delete(0, tk.END)
+        for item in self.listbox_items_builder:
+            self.listbox_builder.insert(tk.END, item)
+        self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
 
+    class layerConvolutional:
+        name = "Convolutional layer"
+        number = 0
+        filters = 0
+        kernelSize = 0
+
+        def getNumber(self):
+            print(self.number)
+
+
+    class layerMaxPooling:
+        name = "Max pooling layer"
+        number = 0
+        poolSize = 0
+
+        def getNumber(self):
+            print(self.number)
+
+
+    class layerDense:
+        name = "Dense layer"
+        number = 0
+        neurons = 0
+
+
+        def getNumber(self):
+            print(self.number)
+
+    class layerFlatten:
+        name = "Flatten layer"
+        number = 0
+
+        def getNumber(self):
+            print(self.number)
+
+    class layerDropout:
+        name = "Dropout layer"
+        number = 0
+        dropNeurons = 0
+
+        def getNumber(self):
+            print(self.number)
 
 if __name__ == "__main__":
-    translatebook = TranslateBook()
-    translatebook.mainloop()
+    nni = NNI()
+    nni.mainloop()
