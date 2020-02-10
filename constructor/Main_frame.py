@@ -39,8 +39,8 @@ class NNI(tk.Tk):
         self.lPath.place(x=620, y=15)
         self.lLearning_options = tk.Label(builder_tab, text="Learning options:")
         self.lLearning_options.place(x=620, y=45)
-        self.lLearning_metrics = tk.Label(builder_tab, text="Learning metrics:")
-        self.lLearning_metrics.place(x=620, y=210)
+        # self.lLearning_metrics = tk.Label(builder_tab, text="Learning metrics:")
+        # self.lLearning_metrics.place(x=620, y=210)
         self.lName = tk.Label(self.tasks_canvas, text="Layers")
         self.lName.place(x=265, y=5)
         #invisiable lebels
@@ -76,9 +76,9 @@ class NNI(tk.Tk):
                                                   justify=tk.CENTER, font="Verdana 20", activefill='lightgreen')
         self.tasks_canvas.tag_bind(self.minus, '<Button-1>', self.delete_layer)
 
-        #self.exitLayer_button = tk.Button(self.tasks_canvas, state=tk.DISABLED, width=20, height=2,
-        #                               text='Default Exit layer', font='Arial 10')
-        #self.exitLayer_button.place(x=self.cordx, y=self.cordy)
+        self.minus = self.tasks_canvas.create_text(525, 105, text="⚙",
+                                                   justify=tk.CENTER, font="Verdana 18", activefill='lightgreen')
+        self.tasks_canvas.tag_bind(self.minus, '<Button-1>', self.change_layer)
 
     #Create Entrys
         # visiable Entrys
@@ -96,11 +96,6 @@ class NNI(tk.Tk):
         self.rho = tk.Entry(builder_tab, width=74)
         self.rho.place_forget()
 
-        #self.tasks_canvas.create_line(285, 60, 285, 120, fill='black',
-        #                              width=2, arrow=tk.LAST,
-        #                              arrowshape="10 20 10")
-
-
         listbox_option_items = ['Adam', 'SGD', 'RMSProp', 'Adagrad', 'Adadelta']
         self.listbox_options = tk.Listbox(builder_tab, width=74, height=5, font=('times', 10), exportselection=False)
         self.listbox_options.bind('<<ListboxSelect>>', self.select_lo_item)
@@ -117,14 +112,14 @@ class NNI(tk.Tk):
             self.listbox_builder.insert(tk.END, item_metrik)
         self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
-        listbox_items_metrik = ['binary_accuracy', 'categorical_accuracy', 'sparse_categorical_accuracy',
-                                'top_k_categorical_accuracy', 'sparse_top_k_categorical_accuracy']
-        self.listbox_metrik = tk.Listbox(builder_tab, width=74, height=5, font=('times', 10), exportselection=False)
-        self.listbox_metrik.bind('<<ListboxSelect>>', self.select_item_metrik)
-        self.listbox_metrik.place(x=720, y=210)
-
-        for item_metrik in listbox_items_metrik:
-            self.listbox_metrik.insert(tk.END, item_metrik)
+        # listbox_items_metrik = ['binary_accuracy', 'categorical_accuracy', 'sparse_categorical_accuracy',
+        #                         'top_k_categorical_accuracy', 'sparse_top_k_categorical_accuracy']
+        # self.listbox_metrik = tk.Listbox(builder_tab, width=74, height=5, font=('times', 10), exportselection=False)
+        # self.listbox_metrik.bind('<<ListboxSelect>>', self.select_item_metrik)
+        # self.listbox_metrik.place(x=720, y=210)
+        #
+        # for item_metrik in listbox_items_metrik:
+        #     self.listbox_metrik.insert(tk.END, item_metrik)
 
         self.notebook.pack(fill=tk.BOTH, expand=1)
 
@@ -223,13 +218,16 @@ class NNI(tk.Tk):
 
         layer.add_button = tk.Button(layer, width=10, height=1, text='Add',
                                        font='Arial 10')
-        layer.add_button.bind('<Button-1>', self.stop)
+        layer.add_button.bind('<Button-1>', self.eror_selected)
         layer.add_button.place(x=100, y=225)
 
         layer.clous_button = tk.Button(layer, width=10, height=1, text='Cancel',
                                      font='Arial 10')
         layer.clous_button.bind('<Button-1>', lambda event: layer.destroy())
         layer.clous_button.place(x=250, y=225)
+
+    def eror_selected(self, event):
+        msg.showerror("Error", "No architecture selected")
 
     def select_layer(event, layer, self):
         value = (layer.listbox_layer.get(layer.listbox_layer.curselection()))
@@ -268,7 +266,6 @@ class NNI(tk.Tk):
             layer.add_button.bind('<Button-1>', lambda event: self.add_Dense(layer))
             layer.add_button.place(x=100, y=225)
         if value == 'Flatten':
-            pass
             layer.add_button.bind('<Button-1>', lambda event: self.add_Flatten(layer))
             layer.add_button.place(x=100, y=225)
         if value == 'Dropout':
@@ -290,8 +287,6 @@ class NNI(tk.Tk):
         newClass.filters = layer.filters.get()
         print("kernel Size=", newClass.kernelSize)
         print("Filters =", newClass.filters)
-        #for i in self.layerBuffer:
-        #    name = self.layerBuffer[i]
         layer.destroy()
         self.listbox_builder.delete(0,tk.END)
         for item in self.listbox_items_builder:
@@ -309,8 +304,6 @@ class NNI(tk.Tk):
         self.layerBuffer.insert(selection[0] + 1, newClass)
         newClass.poolSize = layer.poolSize.get()
         print("poolSize=", newClass.poolSize)
-        # for i in self.layerBuffer:
-        #    name = self.layerBuffer[i]
         layer.destroy()
         self.listbox_builder.delete(0, tk.END)
         for item in self.listbox_items_builder:
@@ -328,8 +321,6 @@ class NNI(tk.Tk):
         self.layerBuffer.insert(selection[0] + 1, newClass)
         newClass.neurons = layer.neurons.get()
         print("neurons=", newClass.neurons)
-        # for i in self.layerBuffer:
-        #    name = self.layerBuffer[i]
         layer.destroy()
         self.listbox_builder.delete(0, tk.END)
         for item in self.listbox_items_builder:
@@ -345,8 +336,6 @@ class NNI(tk.Tk):
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
         self.layerBuffer.insert(selection[0] + 1, newClass)
-        # for i in self.layerBuffer:
-        #    name = self.layerBuffer[i]
         layer.destroy()
         self.listbox_builder.delete(0, tk.END)
         for item in self.listbox_items_builder:
@@ -362,8 +351,6 @@ class NNI(tk.Tk):
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
         self.layerBuffer.insert(selection[0] + 1, newClass)
-        # for i in self.layerBuffer:
-        #    name = self.layerBuffer[i]
         newClass.dropNeurons = layer.dropNeurons.get()
         print("dropNeurons", newClass.dropNeurons)
         layer.destroy()
@@ -372,25 +359,14 @@ class NNI(tk.Tk):
             self.listbox_builder.insert(tk.END, item)
         self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
-        #self.cordy+= 10
-        #self.exitLayer_button.place(x=self.cordx, y=self.cordy)
-        #self.plus = self.tasks_canvas.create_text(305, self.cordy-40, text="+",
-        #                                          justify=tk.CENTER, font="Verdana 14", activefill='lightgreen')
-        #self.tasks_canvas.tag_bind(self.plus, '<Button-1>', self.new_layer)
-        #
-        #self.tasks_canvas.create_line(285, self.cordy-80, 285, self.cordy, fill='black',
-        #                              width=2, arrow=tk.LAST,
-        #                              arrowshape="10 20 10")
-        #
-        #self.dropoutLayer_button = tk.Button(self.tasks_canvas, width=20, height=2, text='Dropout',
-        #                                   font='Arial 10')
-        #self.dropoutLayer_button.bind('<Button-1>', self.openMenuEnter)
-        #self.dropoutLayer_button.place(x=200, y=self.cordy-self.y)
-
     def delete_layer(self, event):
         selection = (self.listbox_builder.curselection())
 
         print(selection[0])
+
+        if len(self.listbox_builder.curselection()) < 1:
+            msg.showerror("Error", "No layer selected")
+            return
 
         if (self.listbox_builder.get(tk.ANCHOR) == 'Default Enter layer') or (self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer'):
             msg.showerror("Error", "Unable to delete static layers")
@@ -403,6 +379,112 @@ class NNI(tk.Tk):
         for item in self.listbox_items_builder:
             self.listbox_builder.insert(tk.END, item)
         self.listbox_builder.insert(tk.END, 'Default Exit layer')
+
+    def change_layer(self, event):
+        selection = (self.listbox_builder.curselection())
+        print(selection)
+        value = self.layerBuffer[selection[0]-1]
+
+        if len(self.listbox_builder.curselection()) < 1:
+            msg.showerror("Error", "No layer selected")
+            return
+
+        if (self.listbox_builder.get(tk.ANCHOR) == 'Default Enter layer') or (self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer'):
+            msg.showerror("Error", "Unable to delete static layers")
+            return
+
+        layer = tk.Toplevel(self)
+        layer.title("Change layer")
+        layer.geometry("450x270")
+        layer.resizable(width=False, height=False)
+
+        layer.filters = tk.Entry(layer, width=20)
+        layer.filters.place_forget()
+        layer.kernelSize = tk.Entry(layer, width=20)
+        layer.kernelSize.place_forget()
+        layer.poolSize = tk.Entry(layer, width=20)
+        layer.poolSize.place_forget()
+        layer.neurons = tk.Entry(layer, width=20)
+        layer.neurons.place_forget()
+        layer.dropNeurons = tk.Entry(layer, width=20)
+        layer.dropNeurons.place_forget()
+
+        layer.lFilters = tk.Label(layer, text="Number of filters:")
+        layer.lFilters.place_forget()
+        layer.lKernelSize = tk.Label(layer, text="Kernel size:")
+        layer.lKernelSize.place_forget()
+        layer.lPoolSize = tk.Label(layer, text="Pool size:")
+        layer.lPoolSize.place_forget()
+        layer.lNeurons = tk.Label(layer, text="Number of neurons:")
+        layer.lNeurons.place_forget()
+        layer.lDropNeurons = tk.Label(layer, text="Discarded neurons:")
+        layer.lDropNeurons.place_forget()
+
+        layer.add_button = tk.Button(layer, width=10, height=1, text='Add',
+                                     font='Arial 10')
+        layer.add_button.bind('<Button-1>', self.eror_selected)
+        layer.add_button.place(x=100, y=225)
+
+        layer.clous_button = tk.Button(layer, width=10, height=1, text='Cancel',
+                                       font='Arial 10')
+        layer.clous_button.bind('<Button-1>', lambda event: layer.destroy())
+        layer.clous_button.place(x=250, y=225)
+
+        if value.name == 'Convolutional layer':
+            layer.lFilters.place(x=65, y=15)
+            layer.lKernelSize.place(x=65, y=45)
+            layer.filters.place(x=245, y=15)
+            layer.kernelSize.place(x=245, y=45)
+            layer.add_button.bind('<Button-1>', lambda event: self.change_Convolutional(layer))
+            layer.add_button.place(x=100, y=225)
+        if value.name == 'Max pooling layer':
+            layer.lPoolSize.place(x=65, y=15)
+            layer.poolSize.place(x=245, y=15)
+            layer.add_button.bind('<Button-1>', lambda event: self.change_MaxPooling(layer))
+            layer.add_button.place(x=100, y=225)
+        if value.name == 'Dense layer':
+            layer.lNeurons.place(x=65, y=15)
+            layer.neurons.place(x=245, y=15)
+            layer.add_button.bind('<Button-1>', lambda event: self.change_Dense(layer))
+            layer.add_button.place(x=100, y=225)
+        if value.name == 'Flatten layer':
+            layer.add_button.bind('<Button-1>', lambda event: self.add_Flatten(layer))
+            layer.add_button.place(x=100, y=225)
+        if value.name == 'Dropout layer':
+            layer.lDropNeurons.place(x=65, y=15)
+            layer.dropNeurons.place(x=245, y=15)
+            layer.add_button.bind('<Button-1>', lambda event: self.change_Dropout(layer))
+            layer.add_button.place(x=100, y=225)
+
+    def change_Convolutional(self, layer):
+        selection = (self.listbox_builder.curselection())
+        value = self.layerBuffer[selection[0]]
+
+    def change_MaxPooling(self, layer):
+        selection = (self.listbox_builder.curselection())
+        value = self.layerBuffer[selection[0]]
+
+    def change_Dense(self, layer):
+        selection = (self.listbox_builder.curselection())
+        value = self.layerBuffer[selection[0]]
+        value.neurons = layer.neurons.get()
+        print("neurons=", value.neurons)
+        layer.destroy()
+
+    def change_Flatten(self, layer):
+        selection = (self.listbox_builder.curselection())
+        value = self.layerBuffer[selection[0]]
+
+    def change_Dropout(self, layer):
+        selection = (self.listbox_builder.curselection())
+        value = self.layerBuffer[selection[0]]
+        value.dropNeurons = layer.dropNeurons.get()
+        print("dropNeurons", value.dropNeurons)
+        layer.destroy()
+
+########################################################
+
+    #class place
 
 
     class layerConvolutional:
