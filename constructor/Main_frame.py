@@ -3,17 +3,20 @@ from tkinter import filedialog
 from tkinter import messagebox as msg
 from tkinter.ttk import Notebook
 
+from constructor.API import NNConstructorAPI
+
 class NNI(tk.Tk):
 
     listbox_items_builder = ['Default Enter layer']
-    layerBuffer = []
+    layerBuffer = [None]
+    constructorAPI = NNConstructorAPI()
 
     def __init__(self):
         super().__init__()
 
     #Windows option
         self.title("NNI")
-        self.geometry("1200x430")
+        self.geometry("1200x600")
         self.resizable(width=False, height=False)
 
     #Create tab
@@ -48,6 +51,8 @@ class NNI(tk.Tk):
         self.lLearning_rate.place_forget()
         self.lBeta_1 = tk.Label(builder_tab, text="beta_1:")
         self.lBeta_1.place_forget()
+        self.lBeta_2 = tk.Label(builder_tab, text="beta_2:")
+        self.lBeta_2.place_forget()
         self.lMomentum = tk.Label(builder_tab, text="momentum:")
         self.lMomentum.place_forget()
         self.lRho = tk.Label(builder_tab, text="rho:")
@@ -55,7 +60,7 @@ class NNI(tk.Tk):
 
     #Create Buttons
         self.browse_button = tk.Button(builder_tab, text='Обзор', font='Arial 10')
-        self.browse_button.bind('<Button-1>', self.delete)
+        self.browse_button.bind('<Button-1>', self.browse)
         self.browse_button.place(x=1120, y=10)
         self.start_button = tk.Button(builder_tab, text='Начало', font='Arial 10')
         self.start_button.bind('<Button-1>', self.start)
@@ -91,6 +96,8 @@ class NNI(tk.Tk):
         self.learning_rate.place_forget()
         self.beta_1 = tk.Entry(builder_tab, width=74)
         self.beta_1.place_forget()
+        self.beta_2 = tk.Entry(builder_tab, width=74)
+        self.beta_2.place_forget()
         self.momentum = tk.Entry(builder_tab, width=74)
         self.momentum.place_forget()
         self.rho = tk.Entry(builder_tab, width=74)
@@ -123,13 +130,41 @@ class NNI(tk.Tk):
 
         self.notebook.pack(fill=tk.BOTH, expand=1)
 
-    def delete(self, event):
+    def browse(self, event):
         self.filename = filedialog.askdirectory(initialdir="/", title="Select directory")
         self.path.delete(0, tk.END)
         self.path.insert(0, self.filename)
 
     def start(self, event):
-        print('start')
+
+        constructorAPI = NNConstructorAPI()
+        constructorAPI.set_data(self.path.get())
+        constructorAPI.set_optimizer(algorithm = self.listbox_options.get(self.listbox_options.curselection()),
+                                     learning_rate = self.learning_rate.get(),
+                                     beta_1 = self.beta_1.get(),
+                                     beta_2 = self.beta_2.get(),
+                                     momentum = self.momentum.get(),
+                                     rho = self.rho.get())
+
+        for i in range(0, len(self.layerBuffer)-1):
+            temp = self.layerBuffer[i]
+            if temp.name == "Convolutional layer":
+                print('Convolutional (filters: ' + temp.filters + "; kernelSize (" + temp.kernelSize_1 + ':' + temp.kernelSize_2 + '))')
+                constructorAPI.add_conv(filters=int(temp.filters), kernel_size=(int(temp.kernelSize_1),int(temp.kernelSize_2)))
+            elif temp.name == "Max pooling layer":
+                print("Max pooling layer // poolSize= (" + temp.poolSize_1 + ":" + temp.poolSize_2 + ")")
+                constructorAPI.add_max_pooling(pool_size=(int(temp.poolSize_1), int(temp.poolSize_2)))
+            elif temp.name == "Dense layer":
+                print("Dense layer // neurons:" + temp.neurons)
+                constructorAPI.add_dense(int(temp.neurons))
+            elif temp.name == "Flatten layer":
+                print("Flatten layer")
+                constructorAPI.add_flatten()
+            elif temp.name == "Dropout layer":
+                print("Dropout layer (dropout = " + (float(temp.dropNeurons)) + ")")
+                constructorAPI.add_dropout(float(temp.dropNeurons))
+            else:
+                print('nice lox')
 
     def stop(self, event):
         print('stop')
@@ -141,17 +176,21 @@ class NNI(tk.Tk):
         value = (self.listbox_options.get(self.listbox_options.curselection()))
         self.learning_rate.place_forget()
         self.beta_1.place_forget()
+        self.beta_2.place_forget()
         self.momentum.place_forget()
         self.rho.place_forget()
         self.lLearning_rate.place_forget()
         self.lBeta_1.place_forget()
+        self.lBeta_2.place_forget()
         self.lMomentum.place_forget()
         self.lRho.place_forget()
         if value == 'Adam':
             self.lLearning_rate.place(x=620, y=150)
             self.lBeta_1.place(x=620, y=180)
+            self.lBeta_2.place(x=620, y=210)
             self.learning_rate.place(x=720, y=150)
             self.beta_1.place(x=720, y=180)
+            self.beta_2.place(x=720, y=210)
         if value == 'SGD':
             self.lLearning_rate.place(x=620, y=150)
             self.lMomentum.place(x=620, y=180)
@@ -191,15 +230,19 @@ class NNI(tk.Tk):
         layer.listbox_layer.bind('<<ListboxSelect>>',lambda event: self.select_layer(layer, self))
         layer.listbox_layer.place(x=65, y=30)
 
-        layer.filters = tk.Entry(layer, width=20)
+        layer.filters = tk.Entry(layer, width=28)
         layer.filters.place_forget()
-        layer.kernelSize = tk.Entry(layer, width=20)
-        layer.kernelSize.place_forget()
-        layer.poolSize = tk.Entry(layer, width=20)
-        layer.poolSize.place_forget()
-        layer.neurons = tk.Entry(layer, width=20)
+        layer.kernelSize_1 = tk.Entry(layer, width=10)
+        layer.kernelSize_1.place_forget()
+        layer.kernelSize_2 = tk.Entry(layer, width=10)
+        layer.kernelSize_2.place_forget()
+        layer.poolSize_1 = tk.Entry(layer, width=10)
+        layer.poolSize_1.place_forget()
+        layer.poolSize_2 = tk.Entry(layer, width=10)
+        layer.poolSize_2.place_forget()
+        layer.neurons = tk.Entry(layer, width=28)
         layer.neurons.place_forget()
-        layer.dropNeurons = tk.Entry(layer, width=20)
+        layer.dropNeurons = tk.Entry(layer, width=28)
         layer.dropNeurons.place_forget()
 
         layer.lFilters = tk.Label(layer, text="Number of filters:")
@@ -232,8 +275,10 @@ class NNI(tk.Tk):
     def select_layer(event, layer, self):
         value = (layer.listbox_layer.get(layer.listbox_layer.curselection()))
         layer.filters.place_forget()
-        layer.kernelSize.place_forget()
-        layer.poolSize.place_forget()
+        layer.kernelSize_1.place_forget()
+        layer.kernelSize_2.place_forget()
+        layer.poolSize_1.place_forget()
+        layer.poolSize_2.place_forget()
         layer.neurons.place_forget()
         layer.dropNeurons.place_forget()
 
@@ -250,19 +295,21 @@ class NNI(tk.Tk):
         if value == 'Convolutional':
             layer.lFilters.place(x=65, y=140)
             layer.lKernelSize.place(x=65, y=170)
-            layer.filters.place(x=245, y=140)
-            layer.kernelSize.place(x=245, y=170)
+            layer.filters.place(x=195, y=140)
+            layer.kernelSize_1.place(x=195, y=170)
+            layer.kernelSize_2.place(x=305, y=170)
 
             layer.add_button.bind('<Button-1>',lambda event: self.add_Convolutional(layer))
             layer.add_button.place(x=100, y=225)
         if value == 'MaxPooling':
             layer.lPoolSize.place(x=65, y=140)
-            layer.poolSize.place(x=245, y=140)
+            layer.poolSize_1.place(x=195, y=140)
+            layer.poolSize_2.place(x=305, y=140)
             layer.add_button.bind('<Button-1>', lambda event: self.add_MaxPooling(layer))
             layer.add_button.place(x=100, y=225)
         if value == 'Dense':
             layer.lNeurons.place(x=65, y=140)
-            layer.neurons.place(x=245, y=140)
+            layer.neurons.place(x=195, y=140)
             layer.add_button.bind('<Button-1>', lambda event: self.add_Dense(layer))
             layer.add_button.place(x=100, y=225)
         if value == 'Flatten':
@@ -270,7 +317,7 @@ class NNI(tk.Tk):
             layer.add_button.place(x=100, y=225)
         if value == 'Dropout':
             layer.lDropNeurons.place(x=65, y=140)
-            layer.dropNeurons.place(x=245, y=140)
+            layer.dropNeurons.place(x=195, y=140)
             layer.add_button.bind('<Button-1>', lambda event: self.add_Dropout(layer))
             layer.add_button.place(x=100, y=225)
 
@@ -282,10 +329,11 @@ class NNI(tk.Tk):
         else:
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0]+1, newClass.name)
-        self.layerBuffer.insert(selection[0]+1, newClass)
-        newClass.kernelSize = layer.kernelSize.get()
+        self.layerBuffer.insert(selection[0], newClass)
+        newClass.kernelSize_1 = layer.kernelSize_1.get()
+        newClass.kernelSize_2 = layer.kernelSize_2.get()
         newClass.filters = layer.filters.get()
-        print("kernel Size=", newClass.kernelSize)
+        print("kernel Size=", newClass.kernelSize_1)
         print("Filters =", newClass.filters)
         layer.destroy()
         self.listbox_builder.delete(0,tk.END)
@@ -301,9 +349,10 @@ class NNI(tk.Tk):
         else:
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
-        self.layerBuffer.insert(selection[0] + 1, newClass)
-        newClass.poolSize = layer.poolSize.get()
-        print("poolSize=", newClass.poolSize)
+        self.layerBuffer.insert(selection[0], newClass)
+        newClass.poolSize_1 = layer.poolSize_1.get()
+        newClass.poolSize_2 = layer.poolSize_2.get()
+        print("poolSize=", newClass.poolSize_1, " : ", newClass.poolSize_2)
         layer.destroy()
         self.listbox_builder.delete(0, tk.END)
         for item in self.listbox_items_builder:
@@ -318,7 +367,7 @@ class NNI(tk.Tk):
         else:
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
-        self.layerBuffer.insert(selection[0] + 1, newClass)
+        self.layerBuffer.insert(selection[0], newClass)
         newClass.neurons = layer.neurons.get()
         print("neurons=", newClass.neurons)
         layer.destroy()
@@ -335,7 +384,7 @@ class NNI(tk.Tk):
         else:
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
-        self.layerBuffer.insert(selection[0] + 1, newClass)
+        self.layerBuffer.insert(selection[0], newClass)
         layer.destroy()
         self.listbox_builder.delete(0, tk.END)
         for item in self.listbox_items_builder:
@@ -350,7 +399,7 @@ class NNI(tk.Tk):
         else:
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
-        self.layerBuffer.insert(selection[0] + 1, newClass)
+        self.layerBuffer.insert(selection[0], newClass)
         newClass.dropNeurons = layer.dropNeurons.get()
         print("dropNeurons", newClass.dropNeurons)
         layer.destroy()
@@ -486,31 +535,29 @@ class NNI(tk.Tk):
 
     #class place
 
-
     class layerConvolutional:
         name = "Convolutional layer"
         number = 0
         filters = 0
-        kernelSize = 0
+        kernelSize_1 = 0
+        kernelSize_2 = 0
 
         def getNumber(self):
             print(self.number)
-
 
     class layerMaxPooling:
         name = "Max pooling layer"
         number = 0
-        poolSize = 0
+        poolSize_1 = 3
+        poolSize_2 = 3
 
         def getNumber(self):
             print(self.number)
-
 
     class layerDense:
         name = "Dense layer"
         number = 0
         neurons = 0
-
 
         def getNumber(self):
             print(self.number)
