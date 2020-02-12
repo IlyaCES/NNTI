@@ -138,13 +138,13 @@ class NNI(tk.Tk):
     def start(self, event):
 
         constructorAPI = NNConstructorAPI()
-        constructorAPI.set_data(self.path.get())
+        #constructorAPI.set_data(self.path.get())
         constructorAPI.set_optimizer(algorithm = self.listbox_options.get(self.listbox_options.curselection()),
-                                     learning_rate = self.learning_rate.get(),
-                                     beta_1 = self.beta_1.get(),
-                                     beta_2 = self.beta_2.get(),
-                                     momentum = self.momentum.get(),
-                                     rho = self.rho.get())
+                                     learning_rate = float(self.learning_rate.get()),
+                                     beta_1 = float(self.beta_1.get()),
+                                     beta_2 = float(self.beta_2.get()),
+                                     momentum = int(self.momentum.get()),
+                                     rho = int(self.rho.get()))
 
         for i in range(0, len(self.layerBuffer)-1):
             temp = self.layerBuffer[i]
@@ -165,6 +165,8 @@ class NNI(tk.Tk):
                 constructorAPI.add_dropout(float(temp.dropNeurons))
             else:
                 print('nice lox')
+        constructorAPI.build()
+        constructorAPI.fit(32, 5)
 
     def stop(self, event):
         print('stop')
