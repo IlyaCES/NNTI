@@ -176,8 +176,22 @@ class NNI(tk.Tk):
             msg.showwarning('Error', 'Rho should be a float number >= 0')
             return
 
+        path = self.path.get()
+
+
         constructorAPI = NNConstructorAPI()
-        constructorAPI.set_data(self.path.get())
+        try:
+            constructorAPI.set_data(path)
+        except FileNotFoundError:
+            if not path:
+                msg.showwarning('Error', 'You need to enter path to data')
+            else:
+                msg.showwarning('Error', 'System can not find path: ' + path)
+            return
+        except ValueError as e:
+            msg.showwarning('Error', str(e))
+            return
+
         constructorAPI.set_optimizer(algorithm=self.listbox_options.get(self.listbox_options.curselection()),
                                      learning_rate=learning_rate,
                                      beta_1=beta_1,
