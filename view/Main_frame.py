@@ -218,7 +218,11 @@ class NNI(tk.Tk):
                 constructorAPI.add_dropout(float(temp.dropNeurons))
             else:
                 print('nice lox')
-        constructorAPI.build()
+        try:
+            constructorAPI.build()
+        except ValueError as e:
+            msg.showwarning('Error', str(e))
+            return
         constructorAPI.fit(32, 5)
 
     def stop(self, event):
