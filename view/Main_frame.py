@@ -138,13 +138,13 @@ class NNI(tk.Tk):
     def start(self, event):
 
         constructorAPI = NNConstructorAPI()
-        #constructorAPI.set_data(self.path.get())
+        constructorAPI.set_data(self.path.get())
         constructorAPI.set_optimizer(algorithm = self.listbox_options.get(self.listbox_options.curselection()),
                                      learning_rate = float(self.learning_rate.get()),
                                      beta_1 = float(self.beta_1.get()),
                                      beta_2 = float(self.beta_2.get()),
-                                     momentum = int(self.momentum.get()),
-                                     rho = int(self.rho.get()))
+                                     momentum = float(self.momentum.get()),
+                                     rho = float(self.rho.get()))
 
         for i in range(0, len(self.layerBuffer)-1):
             temp = self.layerBuffer[i]
@@ -187,6 +187,14 @@ class NNI(tk.Tk):
         self.lMomentum.place_forget()
         self.lRho.place_forget()
         if value == 'Adam':
+            self.learning_rate.delete(0, tk.END)
+            self.beta_1.delete(0, tk.END)
+            self.beta_2.delete(0, tk.END)
+
+            self.learning_rate.insert(0, "0.001")
+            self.beta_1.insert(0, "0.9")
+            self.beta_2.insert(0, "0.999")
+
             self.lLearning_rate.place(x=620, y=150)
             self.lBeta_1.place(x=620, y=180)
             self.lBeta_2.place(x=620, y=210)
@@ -194,19 +202,41 @@ class NNI(tk.Tk):
             self.beta_1.place(x=720, y=180)
             self.beta_2.place(x=720, y=210)
         if value == 'SGD':
+            self.learning_rate.delete(0, tk.END)
+            self.momentum.delete(0, tk.END)
+
+            self.learning_rate.insert(0, "0.01")
+            self.momentum.insert(0, "0")
+
             self.lLearning_rate.place(x=620, y=150)
             self.lMomentum.place(x=620, y=180)
             self.learning_rate.place(x=720, y=150)
             self.momentum.place(x=720, y=180)
         if value == 'RMSProp':
+            self.learning_rate.delete(0, tk.END)
+            self.rho.delete(0, tk.END)
+
+            self.learning_rate.insert(0, "0.001")
+            self.rho.insert(0, "0.9")
+
             self.lLearning_rate.place(x=620, y=150)
             self.lRho.place(x=620, y=180)
             self.learning_rate.place(x=720, y=150)
             self.rho.place(x=720, y=180)
         if value == 'Adagrad':
+            self.learning_rate.delete(0, tk.END)
+
+            self.learning_rate.insert(0, "0.01")
+
             self.lLearning_rate.place(x=620, y=150)
             self.learning_rate.place(x=720, y=150)
         if value == 'Adadelta':
+            self.learning_rate.delete(0, tk.END)
+            self.rho.delete(0, tk.END)
+
+            self.learning_rate.insert(0, "1")
+            self.rho.insert(0, "0.95")
+
             self.lLearning_rate.place(x=620, y=150)
             self.lRho.place(x=620, y=180)
             self.learning_rate.place(x=720, y=150)
@@ -237,7 +267,6 @@ class NNI(tk.Tk):
         layer.kernelSize_1 = tk.Entry(layer, width=10)
         layer.kernelSize_1.place_forget()
         layer.kernelSize_2 = tk.Entry(layer, width=10)
-        layer.kernelSize_2.place_forget()
         layer.poolSize_1 = tk.Entry(layer, width=10)
         layer.poolSize_1.place_forget()
         layer.poolSize_2 = tk.Entry(layer, width=10)
@@ -246,6 +275,14 @@ class NNI(tk.Tk):
         layer.neurons.place_forget()
         layer.dropNeurons = tk.Entry(layer, width=28)
         layer.dropNeurons.place_forget()
+
+        layer.filters.insert(0, "32")
+        layer.kernelSize_1.insert(0, "3")
+        layer.kernelSize_2.insert(0, "3")
+        layer.poolSize_1.insert(0, "2")
+        layer.poolSize_2.insert(0, "2")
+        layer.neurons.insert(0, "64")
+        layer.dropNeurons.insert(0, "0.5")
 
         layer.lFilters = tk.Label(layer, text="Number of filters:")
         layer.lFilters.place_forget()
@@ -540,9 +577,9 @@ class NNI(tk.Tk):
     class layerConvolutional:
         name = "Convolutional layer"
         number = 0
-        filters = 0
-        kernelSize_1 = 0
-        kernelSize_2 = 0
+        filters = 32
+        kernelSize_1 = 3
+        kernelSize_2 = 3
 
         def getNumber(self):
             print(self.number)
@@ -550,8 +587,8 @@ class NNI(tk.Tk):
     class layerMaxPooling:
         name = "Max pooling layer"
         number = 0
-        poolSize_1 = 3
-        poolSize_2 = 3
+        poolSize_1 = 2
+        poolSize_2 = 2
 
         def getNumber(self):
             print(self.number)
@@ -559,7 +596,7 @@ class NNI(tk.Tk):
     class layerDense:
         name = "Dense layer"
         number = 0
-        neurons = 0
+        neurons = 64
 
         def getNumber(self):
             print(self.number)
@@ -574,7 +611,7 @@ class NNI(tk.Tk):
     class layerDropout:
         name = "Dropout layer"
         number = 0
-        dropNeurons = 0
+        dropNeurons = 0.5
 
         def getNumber(self):
             print(self.number)
