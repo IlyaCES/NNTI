@@ -103,6 +103,12 @@ class NNI(tk.Tk):
         self.rho = tk.Entry(builder_tab, width=74)
         self.rho.place_forget()
 
+        self.beta_1.insert(0, "0.9")
+        self.beta_2.insert(0, "0.999")
+        self.learning_rate.insert(0, "0.01")
+        self.momentum.insert(0, "0")
+        self.rho.insert(0, "0.9")
+
         listbox_option_items = ['Adam', 'SGD', 'RMSProp', 'Adagrad', 'Adadelta']
         self.listbox_options = tk.Listbox(builder_tab, width=74, height=5, font=('times', 10), exportselection=False)
         self.listbox_options.bind('<<ListboxSelect>>', self.select_lo_item)
@@ -118,6 +124,8 @@ class NNI(tk.Tk):
         for item_metrik in self.listbox_items_builder:
             self.listbox_builder.insert(tk.END, item_metrik)
         self.listbox_builder.insert(tk.END, 'Default Exit layer')
+
+
 
         # listbox_items_metrik = ['binary_accuracy', 'categorical_accuracy', 'sparse_categorical_accuracy',
         #                         'top_k_categorical_accuracy', 'sparse_top_k_categorical_accuracy']
@@ -311,13 +319,17 @@ class NNI(tk.Tk):
 
         layer = tk.Toplevel(self)
         layer.title("Add layer")
-        layer.geometry("450x270")
+        layer.geometry("450x310")
         layer.resizable(width=False, height=False)
-        listbox_item_layer = ['Convolutional', 'MaxPooling', 'Dense', 'Flatten', 'Dropout']
 
+        listbox_item_layer = ['Convolutional', 'MaxPooling', 'Dense', 'Flatten', 'Dropout']
         layer.listbox_layer = tk.Listbox(layer, width=50, height=5, font=('times', 10), exportselection=False)
         layer.listbox_layer.bind('<<ListboxSelect>>',lambda event: self.select_layer(layer, self))
         layer.listbox_layer.place(x=65, y=30)
+
+        listbox_conv_layer = ['relu', 'sigmoid', 'tanh']
+        layer.listbox_conv_layer = tk.Listbox(layer, width=28, height=3, font=('times', 10), exportselection=False)
+        layer.listbox_conv_layer.bind('<<ListboxSelect>>')
 
         layer.filters = tk.Entry(layer, width=28)
         layer.filters.place_forget()
@@ -355,15 +367,20 @@ class NNI(tk.Tk):
         for item in listbox_item_layer:
             layer.listbox_layer.insert(tk.END, item)
 
+        for item in listbox_conv_layer:
+            layer.listbox_conv_layer.insert(tk.END, item)
+
+        layer.listbox_conv_layer.select_set(0)
+
         layer.add_button = tk.Button(layer, width=10, height=1, text='Add',
                                        font='Arial 10')
         layer.add_button.bind('<Button-1>', self.eror_selected)
-        layer.add_button.place(x=100, y=225)
+        layer.add_button.place(x=100, y=265)
 
         layer.clous_button = tk.Button(layer, width=10, height=1, text='Cancel',
                                      font='Arial 10')
         layer.clous_button.bind('<Button-1>', lambda event: layer.destroy())
-        layer.clous_button.place(x=250, y=225)
+        layer.clous_button.place(x=250, y=265)
 
     def eror_selected(self, event):
         msg.showerror("Error", "No architecture selected")
@@ -377,6 +394,7 @@ class NNI(tk.Tk):
         layer.poolSize_2.place_forget()
         layer.neurons.place_forget()
         layer.dropNeurons.place_forget()
+        layer.listbox_conv_layer.place_forget()
 
         layer.lFilters.place_forget()
         layer.lKernelSize.place_forget()
@@ -394,28 +412,29 @@ class NNI(tk.Tk):
             layer.filters.place(x=195, y=140)
             layer.kernelSize_1.place(x=195, y=170)
             layer.kernelSize_2.place(x=305, y=170)
+            layer.listbox_conv_layer.place(x=195, y=200)
 
             layer.add_button.bind('<Button-1>',lambda event: self.add_Convolutional(layer))
-            layer.add_button.place(x=100, y=225)
+            layer.add_button.place(x=100, y=265)
         if value == 'MaxPooling':
             layer.lPoolSize.place(x=65, y=140)
             layer.poolSize_1.place(x=195, y=140)
             layer.poolSize_2.place(x=305, y=140)
             layer.add_button.bind('<Button-1>', lambda event: self.add_MaxPooling(layer))
-            layer.add_button.place(x=100, y=225)
+            layer.add_button.place(x=100, y=265)
         if value == 'Dense':
             layer.lNeurons.place(x=65, y=140)
             layer.neurons.place(x=195, y=140)
             layer.add_button.bind('<Button-1>', lambda event: self.add_Dense(layer))
-            layer.add_button.place(x=100, y=225)
+            layer.add_button.place(x=100, y=265)
         if value == 'Flatten':
             layer.add_button.bind('<Button-1>', lambda event: self.add_Flatten(layer))
-            layer.add_button.place(x=100, y=225)
+            layer.add_button.place(x=100, y=265)
         if value == 'Dropout':
             layer.lDropNeurons.place(x=65, y=140)
             layer.dropNeurons.place(x=195, y=140)
             layer.add_button.bind('<Button-1>', lambda event: self.add_Dropout(layer))
-            layer.add_button.place(x=100, y=225)
+            layer.add_button.place(x=100, y=265)
 
     def add_Convolutional(self, layer):
         newClass = self.layerConvolutional()
@@ -429,8 +448,10 @@ class NNI(tk.Tk):
         newClass.kernelSize_1 = layer.kernelSize_1.get()
         newClass.kernelSize_2 = layer.kernelSize_2.get()
         newClass.filters = layer.filters.get()
-        print("kernel Size=", newClass.kernelSize_1)
+        newClass.activations = (layer.listbox_conv_layer.get(layer.listbox_conv_layer.curselection()))
+        print("kernel Size (", newClass.kernelSize_1, ":", newClass.kernelSize_2, ')')
         print("Filters =", newClass.filters)
+        print("Activations:", newClass.activations)
         layer.destroy()
         self.listbox_builder.delete(0,tk.END)
         for item in self.listbox_items_builder:
@@ -448,7 +469,7 @@ class NNI(tk.Tk):
         self.layerBuffer.insert(selection[0], newClass)
         newClass.poolSize_1 = layer.poolSize_1.get()
         newClass.poolSize_2 = layer.poolSize_2.get()
-        print("poolSize=", newClass.poolSize_1, " : ", newClass.poolSize_2)
+        print("poolSize (", newClass.poolSize_1, " : ", newClass.poolSize_2, ')')
         layer.destroy()
         self.listbox_builder.delete(0, tk.END)
         for item in self.listbox_items_builder:
@@ -507,6 +528,12 @@ class NNI(tk.Tk):
     def delete_layer(self, event):
         selection = (self.listbox_builder.curselection())
 
+        try:
+            print((self.listbox_builder.get(self.listbox_builder.curselection())))
+        except:
+            msg.showerror("Error", "No layer selected")
+            return
+
         print(selection[0])
 
         if len(self.listbox_builder.curselection()) < 1:
@@ -526,32 +553,45 @@ class NNI(tk.Tk):
         self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
     def change_layer(self, event):
-        selection = (self.listbox_builder.curselection())
-        print(selection)
-        value = self.layerBuffer[selection[0]-1]
 
-        if len(self.listbox_builder.curselection()) < 1:
+        selection = (self.listbox_builder.curselection())
+        try:
+            print((self.listbox_builder.get(self.listbox_builder.curselection())))
+        except:
             msg.showerror("Error", "No layer selected")
             return
 
-        if (self.listbox_builder.get(tk.ANCHOR) == 'Default Enter layer') or (self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer'):
-            msg.showerror("Error", "Unable to delete static layers")
+        value = self.layerBuffer[selection[0]-1]
+
+        if ((self.listbox_builder.get(self.listbox_builder.curselection())) == 'Default Enter layer') \
+                or ((self.listbox_builder.get(self.listbox_builder.curselection())) == 'Default Exit layer'):
+            msg.showerror("Error", "Unable to change static layers")
             return
+
+
+        if value.name == "Flatten layer":
+            msg.showwarning('Warning', 'Flatten impossible to change')
+            return
+
 
         layer = tk.Toplevel(self)
         layer.title("Change layer")
         layer.geometry("450x270")
         layer.resizable(width=False, height=False)
 
-        layer.filters = tk.Entry(layer, width=20)
+        layer.filters = tk.Entry(layer, width=28)
         layer.filters.place_forget()
-        layer.kernelSize = tk.Entry(layer, width=20)
-        layer.kernelSize.place_forget()
-        layer.poolSize = tk.Entry(layer, width=20)
-        layer.poolSize.place_forget()
-        layer.neurons = tk.Entry(layer, width=20)
+        layer.kernelSize_1 = tk.Entry(layer, width=10)
+        layer.kernelSize_2 = tk.Entry(layer, width=10)
+        layer.kernelSize_1.place_forget()
+        layer.kernelSize_2.place_forget()
+        layer.poolSize_1 = tk.Entry(layer, width=10)
+        layer.poolSize_1.place_forget()
+        layer.poolSize_2 = tk.Entry(layer, width=10)
+        layer.poolSize_2.place_forget()
+        layer.neurons = tk.Entry(layer, width=28)
         layer.neurons.place_forget()
-        layer.dropNeurons = tk.Entry(layer, width=20)
+        layer.dropNeurons = tk.Entry(layer, width=28)
         layer.dropNeurons.place_forget()
 
         layer.lFilters = tk.Label(layer, text="Number of filters:")
@@ -570,6 +610,14 @@ class NNI(tk.Tk):
         layer.add_button.bind('<Button-1>', self.eror_selected)
         layer.add_button.place(x=100, y=225)
 
+        listbox_conv_layer = ['relu', 'sigmoid', 'tanh']
+        layer.listbox_conv_layer = tk.Listbox(layer, width=28, height=3, font=('times', 10), exportselection=False)
+        layer.listbox_conv_layer.bind('<<ListboxSelect>>')
+        layer.listbox_conv_layer.place_forget()
+
+        for item in listbox_conv_layer:
+            layer.listbox_conv_layer.insert(tk.END, item)
+
         layer.clous_button = tk.Button(layer, width=10, height=1, text='Cancel',
                                        font='Arial 10')
         layer.clous_button.bind('<Button-1>', lambda event: layer.destroy())
@@ -578,51 +626,65 @@ class NNI(tk.Tk):
         if value.name == 'Convolutional layer':
             layer.lFilters.place(x=65, y=15)
             layer.lKernelSize.place(x=65, y=45)
-            layer.filters.place(x=245, y=15)
-            layer.kernelSize.place(x=245, y=45)
+            layer.filters.place(x=195, y=15)
+            layer.kernelSize_1.place(x=195, y=45)
+            layer.kernelSize_2.place(x=305, y=45)
             layer.add_button.bind('<Button-1>', lambda event: self.change_Convolutional(layer))
             layer.add_button.place(x=100, y=225)
+            layer.listbox_conv_layer.place(x=195, y=150)
         if value.name == 'Max pooling layer':
             layer.lPoolSize.place(x=65, y=15)
-            layer.poolSize.place(x=245, y=15)
+            layer.poolSize_1.place(x=195, y=15)
+            layer.poolSize_2.place(x=305, y=15)
             layer.add_button.bind('<Button-1>', lambda event: self.change_MaxPooling(layer))
             layer.add_button.place(x=100, y=225)
         if value.name == 'Dense layer':
             layer.lNeurons.place(x=65, y=15)
-            layer.neurons.place(x=245, y=15)
+            layer.neurons.place(x=195, y=15)
             layer.add_button.bind('<Button-1>', lambda event: self.change_Dense(layer))
             layer.add_button.place(x=100, y=225)
         if value.name == 'Flatten layer':
-            layer.add_button.bind('<Button-1>', lambda event: self.add_Flatten(layer))
+            layer.add_button.bind('<Button-1>', lambda event: self.change_Flatten(layer))
             layer.add_button.place(x=100, y=225)
         if value.name == 'Dropout layer':
             layer.lDropNeurons.place(x=65, y=15)
-            layer.dropNeurons.place(x=245, y=15)
+            layer.dropNeurons.place(x=195, y=15)
             layer.add_button.bind('<Button-1>', lambda event: self.change_Dropout(layer))
             layer.add_button.place(x=100, y=225)
 
     def change_Convolutional(self, layer):
         selection = (self.listbox_builder.curselection())
-        value = self.layerBuffer[selection[0]]
+        value = self.layerBuffer[selection[0]-1]
+        value.filters = layer.filters.get()
+        value.kernelSize_1 = layer.kernelSize_1.get()
+        value.kernelSize_2 = layer.kernelSize_2.get()
+        value.activations = (layer.listbox_conv_layer.get(layer.listbox_conv_layer.curselection()))
+        print("filters=", value.filters)
+        print("kernelSize (", value.kernelSize_1, ':', value.kernelSize_2, ')')
+        print("Activations:", value.activations)
+        layer.destroy()
 
     def change_MaxPooling(self, layer):
         selection = (self.listbox_builder.curselection())
-        value = self.layerBuffer[selection[0]]
+        value = self.layerBuffer[selection[0]-1]
+        value.poolSize_1 = layer.poolSize_1.get()
+        value.poolSize_2 = layer.poolSize_2.get()
+        print("poolSize (", value.poolSize_1 , ':', value.poolSize_2, ')')
+        layer.destroy()
 
     def change_Dense(self, layer):
         selection = (self.listbox_builder.curselection())
-        value = self.layerBuffer[selection[0]]
+        value = self.layerBuffer[selection[0]-1]
         value.neurons = layer.neurons.get()
         print("neurons=", value.neurons)
         layer.destroy()
 
     def change_Flatten(self, layer):
-        selection = (self.listbox_builder.curselection())
-        value = self.layerBuffer[selection[0]]
+        msg.showwarning('Warning', 'Flatten impossible to change')
 
     def change_Dropout(self, layer):
         selection = (self.listbox_builder.curselection())
-        value = self.layerBuffer[selection[0]]
+        value = self.layerBuffer[selection[0]-1]
         value.dropNeurons = layer.dropNeurons.get()
         print("dropNeurons", value.dropNeurons)
         layer.destroy()
@@ -637,6 +699,7 @@ class NNI(tk.Tk):
         filters = 32
         kernelSize_1 = 3
         kernelSize_2 = 3
+        activations = 'relu'
 
         def getNumber(self):
             print(self.number)
