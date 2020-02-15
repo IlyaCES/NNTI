@@ -3,7 +3,6 @@ import pickle
 from tensorflow.keras import optimizers
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.models import load_model
-from tensorflow.keras.callbacks import Callback
 
 
 class Model(object):
@@ -32,6 +31,7 @@ class Model(object):
             self.layers.append(layer)
         else:
             self.layers.insert(index, layer)
+        print(self.layers)
 
     def delete_layer(self, layer):
         """Deletes layer from model
@@ -81,37 +81,26 @@ class Model(object):
 
         if self.optimizer is None:
             self.optimizer = optimizers.Adam()  # raise ValueError('Optimizer is not setted')
+
         self._model.compile(optimizer=self.optimizer,
                             loss='categorical_crossentropy',
                             metrics=['accuracy'])
 
-    def fit(self, train_data, validation_data, callbacks=None):
+    def fit(self, train_data, validation_data):
         """Fit
 
         :param train_data: (x_train, y_train)
         :param validation_data: (x_valid, y_valid)
         """
-        callbacks = [LossAndAccuracyUpdate(model=self)] + callbacks
+
         history = self._model.fit(*train_data,
                                   batch_size=self.batch_size,
                                   epochs=self.epochs,
                                   verbose=1,
-                                  validation_data=validation_data,
-                                  callbacks=callbacks)
+                                  validation_data=validation_data)
 
-        # self.loss = history.history['loss']
-        # self.val_loss = history.history['val_loss']
-        # self.accuracy = history.history['accuracy']
-        # self.val_accuracy = history.history['val_accuracy']
-
-
-class LossAndAccuracyUpdate(Callback):
-    def __init__(self, model):
-        super(Callback, self).__init__()
-        self.my_model = model
-
-    def on_epoch_end(self, epoch, logs=None):
-        self.my_model.loss.append(logs['loss'])
-        self.my_model.val_loss.append(logs['val_loss'])
-        self.my_model.accuracy.append(logs['accuracy'])
-        self.my_model.val_accuracy.append(logs['val_accuracy'])
+        self.loss = history.history['loss']
+        self.val_loss = history.history['val_loss']
+        self.accuracy = history.history['accuracy']
+        self.val_accuracy = history.history['val_accuracy']
+        print(self.loss, self.val_loss, self.accuracy, self.val_accuracy)

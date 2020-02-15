@@ -137,14 +137,53 @@ class NNI(tk.Tk):
 
     def start(self, event):
 
+        try:
+            learning_rate = float(self.learning_rate.get())
+            if learning_rate < 0:
+                raise ValueError()
+        except ValueError:
+            msg.showwarning('Error', 'Learning rate should be a float number >= 0')
+            return
+
+        try:
+            beta_1 = float(self.beta_1.get())
+            if beta_1 <= 0 or beta_1 >= 1:
+                raise ValueError()
+        except ValueError:
+            msg.showwarning('Error', 'Beta 1 should be a float number: 0 < beta_1 < 1')
+
+        try:
+            beta_2 = float(self.beta_1.get())
+            if beta_2 <= 0 or beta_2 >= 1:
+                raise ValueError()
+        except ValueError:
+            msg.showwarning('Error', 'Beta 2 should be a float number: 0 < beta_2 < 1')
+            return
+
+        try:
+            momentum = float(self.momentum.get())
+            if momentum < 0:
+                raise ValueError()
+        except ValueError:
+            msg.showwarning('Error', 'Momentum should be a float number >= 0')
+            return
+
+        try:
+            rho = float(self.rho.get())
+            if rho < 0:
+                raise ValueError()
+        except ValueError:
+            msg.showwarning('Error', 'Rho should be a float number >= 0')
+            return
+
         constructorAPI = NNConstructorAPI()
         constructorAPI.set_data(self.path.get())
-        constructorAPI.set_optimizer(algorithm = self.listbox_options.get(self.listbox_options.curselection()),
-                                     learning_rate = float(self.learning_rate.get()),
-                                     beta_1 = float(self.beta_1.get()),
-                                     beta_2 = float(self.beta_2.get()),
-                                     momentum = float(self.momentum.get()),
-                                     rho = float(self.rho.get()))
+        constructorAPI.set_optimizer(algorithm=self.listbox_options.get(self.listbox_options.curselection()),
+                                     learning_rate=learning_rate,
+                                     beta_1=beta_1,
+                                     beta_2=beta_2,
+                                     momentum=momentum,
+                                     rho=rho)
 
         for i in range(0, len(self.layerBuffer)-1):
             temp = self.layerBuffer[i]
