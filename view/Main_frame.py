@@ -1,7 +1,15 @@
+import pickle
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox as msg
 from tkinter.ttk import Notebook
+
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from constructor.API import NNConstructorAPI
 
@@ -16,7 +24,7 @@ class NNI(tk.Tk):
 
     #Windows option
         self.title("NNI")
-        self.geometry("1200x600")
+        self.geometry("1200x400")
         self.resizable(width=False, height=False)
 
     #Create tab
@@ -42,10 +50,14 @@ class NNI(tk.Tk):
         self.lPath.place(x=620, y=15)
         self.lLearning_options = tk.Label(builder_tab, text="Learning options:")
         self.lLearning_options.place(x=620, y=45)
+        self.lBatch_size = tk.Label(builder_tab, text="Batch size:")
+        self.lBatch_size.place(x=620, y=240)
+        self.lEpochs = tk.Label(builder_tab, text="Epochs:")
+        self.lEpochs.place(x=620, y=270)
         # self.lLearning_metrics = tk.Label(builder_tab, text="Learning metrics:")
         # self.lLearning_metrics.place(x=620, y=210)
-        self.lName = tk.Label(self.tasks_canvas, text="Layers")
-        self.lName.place(x=265, y=5)
+        # self.lName = tk.Label(self.tasks_canvas, text="Layers")
+        # self.lName.place(x=265, y=5)
         #invisiable lebels
         self.lLearning_rate = tk.Label(builder_tab, text="learning_rate:")
         self.lLearning_rate.place_forget()
@@ -59,13 +71,13 @@ class NNI(tk.Tk):
         self.lRho.place_forget()
 
     #Create Buttons
-        self.browse_button = tk.Button(builder_tab, text='Обзор', font='Arial 10')
+        self.browse_button = tk.Button(builder_tab, text='Browse', font='Arial 10')
         self.browse_button.bind('<Button-1>', self.browse)
         self.browse_button.place(x=1120, y=10)
-        self.start_button = tk.Button(builder_tab, text='Начало', font='Arial 10')
+        self.start_button = tk.Button(builder_tab, text='Start', font='Arial 10', width=10)
         self.start_button.bind('<Button-1>', self.start)
-        self.start_button.place(x=1020, y=320)
-        self.stop_button = tk.Button(builder_tab, text='Остановка', font='Arial 10')
+        self.start_button.place(x=970, y=320)
+        self.stop_button = tk.Button(builder_tab, text='Stop', font='Arial 10', width=10)
         self.stop_button.bind('<Button-1>', self.stop)
         self.stop_button.place(x=1080, y=320)
 
@@ -89,8 +101,12 @@ class NNI(tk.Tk):
         # visiable Entrys
         self.path = tk.Entry(builder_tab, width=65)
         self.path.place(x=720, y=15)
-        self.name = tk.Entry(builder_tab, width=47)
-        self.name.place(x=720, y=325)
+        # self.name = tk.Entry(builder_tab, width=47)
+        # self.name.place(x=720, y=325)
+        self.batch_size = tk.Entry(builder_tab, width=74)
+        self.batch_size.place(x=720, y=240)
+        self.epochs = tk.Entry(builder_tab, width=74)
+        self.epochs.place(x=720, y=270)
         # invisiable Entrys
         self.learning_rate = tk.Entry(builder_tab, width=74)
         self.learning_rate.place_forget()
@@ -103,11 +119,15 @@ class NNI(tk.Tk):
         self.rho = tk.Entry(builder_tab, width=74)
         self.rho.place_forget()
 
+        self.batch_size.insert(0, "32")
+        self.epochs.insert(0, "5")
         self.beta_1.insert(0, "0.9")
         self.beta_2.insert(0, "0.999")
         self.learning_rate.insert(0, "0.01")
         self.momentum.insert(0, "0")
         self.rho.insert(0, "0.9")
+        self.path.insert(0, "C:\\")
+        self.path.config(state='readonly')
 
         listbox_option_items = ['Adam', 'SGD', 'RMSProp', 'Adagrad', 'Adadelta']
         self.listbox_options = tk.Listbox(builder_tab, width=74, height=5, font=('times', 10), exportselection=False)
@@ -125,8 +145,6 @@ class NNI(tk.Tk):
             self.listbox_builder.insert(tk.END, item_metrik)
         self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
-
-
         # listbox_items_metrik = ['binary_accuracy', 'categorical_accuracy', 'sparse_categorical_accuracy',
         #                         'top_k_categorical_accuracy', 'sparse_top_k_categorical_accuracy']
         # self.listbox_metrik = tk.Listbox(builder_tab, width=74, height=5, font=('times', 10), exportselection=False)
@@ -139,9 +157,11 @@ class NNI(tk.Tk):
         self.notebook.pack(fill=tk.BOTH, expand=1)
 
     def browse(self, event):
+        self.path.config(state='normal')
         self.filename = filedialog.askdirectory(initialdir="/", title="Select directory")
         self.path.delete(0, tk.END)
         self.path.insert(0, self.filename)
+        self.path.config(state='readonly')
 
     def start(self, event):
 
@@ -186,7 +206,6 @@ class NNI(tk.Tk):
 
         path = self.path.get()
 
-
         constructorAPI = NNConstructorAPI()
         try:
             constructorAPI.set_data(path)
@@ -211,7 +230,9 @@ class NNI(tk.Tk):
             temp = self.layerBuffer[i]
             if temp.name == "Convolutional layer":
                 print('Convolutional (filters: ' + temp.filters + "; kernelSize (" + temp.kernelSize_1 + ':' + temp.kernelSize_2 + '))')
-                constructorAPI.add_conv(filters=int(temp.filters), kernel_size=(int(temp.kernelSize_1),int(temp.kernelSize_2)))
+                constructorAPI.add_conv(filters=int(temp.filters),
+                                        kernel_size=(int(temp.kernelSize_1),int(temp.kernelSize_2)),
+                                        activation = temp.activations)
             elif temp.name == "Max pooling layer":
                 print("Max pooling layer // poolSize= (" + temp.poolSize_1 + ":" + temp.poolSize_2 + ")")
                 constructorAPI.add_max_pooling(pool_size=(int(temp.poolSize_1), int(temp.poolSize_2)))
@@ -231,7 +252,9 @@ class NNI(tk.Tk):
         except ValueError as e:
             msg.showwarning('Error', str(e))
             return
-        constructorAPI.fit(32, 5)
+        constructorAPI.fit(int(self.batch_size.get()), int(self.epochs.get()))
+
+        self.get_grafic(constructorAPI)
 
     def stop(self, event):
         print('stop')
@@ -363,6 +386,8 @@ class NNI(tk.Tk):
         layer.lNeurons.place_forget()
         layer.lDropNeurons = tk.Label(layer, text="Discarded neurons:")
         layer.lDropNeurons.place_forget()
+        layer.lActivations = tk.Label(layer, text="Activations:")
+        layer.lActivations.place_forget()
 
         for item in listbox_item_layer:
             layer.listbox_layer.insert(tk.END, item)
@@ -401,6 +426,7 @@ class NNI(tk.Tk):
         layer.lPoolSize.place_forget()
         layer.lNeurons.place_forget()
         layer.lDropNeurons.place_forget()
+        layer.lActivations.place_forget()
 
         layer.add_button = tk.Button(layer, width=10, height=1, text='Add',
                                      font='Arial 10')
@@ -412,6 +438,7 @@ class NNI(tk.Tk):
             layer.filters.place(x=195, y=140)
             layer.kernelSize_1.place(x=195, y=170)
             layer.kernelSize_2.place(x=305, y=170)
+            layer.lActivations.place(x=65, y=200)
             layer.listbox_conv_layer.place(x=195, y=200)
 
             layer.add_button.bind('<Button-1>',lambda event: self.add_Convolutional(layer))
@@ -604,8 +631,10 @@ class NNI(tk.Tk):
         layer.lNeurons.place_forget()
         layer.lDropNeurons = tk.Label(layer, text="Discarded neurons:")
         layer.lDropNeurons.place_forget()
+        layer.lActivations = tk.Label(layer, text="Activations:")
+        layer.lActivations.place_forget()
 
-        layer.add_button = tk.Button(layer, width=10, height=1, text='Add',
+        layer.add_button = tk.Button(layer, width=10, height=1, text='Change',
                                      font='Arial 10')
         layer.add_button.bind('<Button-1>', self.eror_selected)
         layer.add_button.place(x=100, y=225)
@@ -627,20 +656,27 @@ class NNI(tk.Tk):
             layer.lFilters.place(x=65, y=15)
             layer.lKernelSize.place(x=65, y=45)
             layer.filters.place(x=195, y=15)
+            layer.filters.insert(0, value.filters)
             layer.kernelSize_1.place(x=195, y=45)
             layer.kernelSize_2.place(x=305, y=45)
+            layer.kernelSize_1.insert(0, value.kernelSize_1)
+            layer.kernelSize_2.insert(0, value.kernelSize_2)
             layer.add_button.bind('<Button-1>', lambda event: self.change_Convolutional(layer))
             layer.add_button.place(x=100, y=225)
-            layer.listbox_conv_layer.place(x=195, y=150)
+            layer.listbox_conv_layer.place(x=195, y=75)
+            layer.lActivations.place(x=65, y=75)
         if value.name == 'Max pooling layer':
             layer.lPoolSize.place(x=65, y=15)
             layer.poolSize_1.place(x=195, y=15)
             layer.poolSize_2.place(x=305, y=15)
+            layer.poolSize_1.insert(0, value.poolSize_1)
+            layer.poolSize_2.insert(0, value.poolSize_2)
             layer.add_button.bind('<Button-1>', lambda event: self.change_MaxPooling(layer))
             layer.add_button.place(x=100, y=225)
         if value.name == 'Dense layer':
             layer.lNeurons.place(x=65, y=15)
             layer.neurons.place(x=195, y=15)
+            layer.neurons.insert(0, value.neurons)
             layer.add_button.bind('<Button-1>', lambda event: self.change_Dense(layer))
             layer.add_button.place(x=100, y=225)
         if value.name == 'Flatten layer':
@@ -649,6 +685,7 @@ class NNI(tk.Tk):
         if value.name == 'Dropout layer':
             layer.lDropNeurons.place(x=65, y=15)
             layer.dropNeurons.place(x=195, y=15)
+            layer.dropNeurons.insert(0, value.dropNeurons)
             layer.add_button.bind('<Button-1>', lambda event: self.change_Dropout(layer))
             layer.add_button.place(x=100, y=225)
 
@@ -735,6 +772,42 @@ class NNI(tk.Tk):
 
         def getNumber(self):
             print(self.number)
+
+    def get_grafic(self, constructor):
+
+        graf_frame = tk.Toplevel(self)
+        graf_frame.title("Graf")
+        graf_frame.geometry("1000x700")
+        graf_frame.resizable(width=False, height=False)
+
+
+        model = constructor.model  # model брать из API
+
+        figure = Figure(figsize=(10, 7), dpi=100)
+        accuracy_plot = figure.add_subplot(211)
+
+        #fit, (accuracy_plot, accuracy_plot) = plt.subplots(nrows=1, ncols=2, figsize=(14, 8))
+
+        x = range(1, len(model.accuracy) + 1)
+
+        accuracy_plot.plot(x, model.accuracy, label='Training')
+        accuracy_plot.plot(x, model.val_accuracy, label='Validation')
+        accuracy_plot.legend()
+        accuracy_plot.set_xlabel('Epochs')
+        accuracy_plot.set_ylabel('Accuracy')
+        accuracy_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        loss_plot = figure.add_subplot(212)
+
+        loss_plot.plot(x, model.loss, label='Training')
+        loss_plot.plot(x, model.val_loss, label='Validation')
+        loss_plot.legend()
+        loss_plot.set_xlabel('Epochs')
+        loss_plot.set_ylabel('Loss')
+        loss_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        canvas = FigureCanvasTkAgg(figure, graf_frame)
+        canvas.get_tk_widget().grid(row=0, column=0)
 
 if __name__ == "__main__":
     nni = NNI()
