@@ -24,23 +24,25 @@ class NNI(tk.Tk):
 
     #Windows option
         self.title("NNI")
-        self.geometry("1200x400")
+        self.geometry("1200x600")
         self.resizable(width=False, height=False)
 
     #Create tab
         self.notebook = Notebook(self)
         builder_tab = tk.Frame(self.notebook)
-        result_tab = tk.Frame(self.notebook)
+        self.result_tab = tk.Frame(self.notebook)
+        self.storage_tab = tk.Frame(self.notebook)
         self.notebook.add(builder_tab, text="Building architecture")
-        self.notebook.add(result_tab, text="Result")
+        self.notebook.add(self.result_tab, text="Result", state="disabled")
+        self.notebook.add(self.storage_tab, text="Storage")
 
     #Create canvas for dinamic blocs
-        self.tasks_canvas = tk.Canvas(builder_tab, width=600)
-        self.tasks_frame = tk.Frame(self.tasks_canvas)
-        self.text_frame = tk.Frame(builder_tab)
+        self.tasks_canvas = tk.Canvas(builder_tab, width=600, bd=0)
+        self.tasks_frame = tk.Frame(self.tasks_canvas, bd=0)
+        self.text_frame = tk.Frame(builder_tab, bd=0)
         self.scrollbar = tk.Scrollbar(self.tasks_canvas, orient="vertical", command=self.
-                                      tasks_canvas.yview)
-        self.tasks_canvas.configure(yscrollcommand=self.scrollbar.set)
+                                      tasks_canvas.yview, bd=0)
+        self.tasks_canvas.configure(yscrollcommand=self.scrollbar.set, bd=0)
         self.tasks_canvas.place(x=0, y=0)
         self.scrollbar.place_forget()
 
@@ -54,10 +56,12 @@ class NNI(tk.Tk):
         self.lBatch_size.place(x=620, y=240)
         self.lEpochs = tk.Label(builder_tab, text="Epochs:")
         self.lEpochs.place(x=620, y=270)
+        self.lresize_shape = tk.Label(builder_tab, text="Resize shape:")
+        self.lresize_shape.place(x=620, y=300)
         # self.lLearning_metrics = tk.Label(builder_tab, text="Learning metrics:")
         # self.lLearning_metrics.place(x=620, y=210)
-        # self.lName = tk.Label(self.tasks_canvas, text="Layers")
-        # self.lName.place(x=265, y=5)
+        self.lName = tk.Label(self.result_tab, text="Name:")
+        self.lName.place(x=720, y=15)
         #invisiable lebels
         self.lLearning_rate = tk.Label(builder_tab, text="learning_rate:")
         self.lLearning_rate.place_forget()
@@ -76,10 +80,13 @@ class NNI(tk.Tk):
         self.browse_button.place(x=1120, y=10)
         self.start_button = tk.Button(builder_tab, text='Start', font='Arial 10', width=10)
         self.start_button.bind('<Button-1>', self.start)
-        self.start_button.place(x=970, y=320)
+        self.start_button.place(x=970, y=350)
         self.stop_button = tk.Button(builder_tab, text='Stop', font='Arial 10', width=10)
         self.stop_button.bind('<Button-1>', self.stop)
-        self.stop_button.place(x=1080, y=320)
+        self.stop_button.place(x=1080, y=350)
+        self.save_button = tk.Button(self.result_tab, text='Save', font='Arial 10', width=10)
+        self.save_button.bind('<Button-1>', self.save)
+        self.save_button.place_forget()
 
         #self.enretLayer_button = tk.Button(self.tasks_canvas, width=20, height=2, text='Default Enter layer', font='Arial 10')
         #self.enretLayer_button.bind('<Button-1>', self.openMenuEnter)
@@ -97,16 +104,24 @@ class NNI(tk.Tk):
                                                    justify=tk.CENTER, font="Verdana 18", activefill='lightgreen')
         self.tasks_canvas.tag_bind(self.minus, '<Button-1>', self.change_layer)
 
+    #Text area
+        self.log = tk.Text(self.result_tab, width=100, height=100)
+        self.log.place(x=710, y=50)
+
     #Create Entrys
         # visiable Entrys
         self.path = tk.Entry(builder_tab, width=65)
         self.path.place(x=720, y=15)
-        # self.name = tk.Entry(builder_tab, width=47)
-        # self.name.place(x=720, y=325)
+        self.name = tk.Entry(self.result_tab, width=40)
+        self.name.place(x=800, y=15)
         self.batch_size = tk.Entry(builder_tab, width=74)
         self.batch_size.place(x=720, y=240)
         self.epochs = tk.Entry(builder_tab, width=74)
         self.epochs.place(x=720, y=270)
+        self.resize_shape_1 = tk.Entry(builder_tab, width=10)
+        self.resize_shape_1.place(x=720, y=300)
+        self.resize_shape_2 = tk.Entry(builder_tab, width=10)
+        self.resize_shape_2.place(x=805, y=300)
         # invisiable Entrys
         self.learning_rate = tk.Entry(builder_tab, width=74)
         self.learning_rate.place_forget()
@@ -134,16 +149,25 @@ class NNI(tk.Tk):
         self.listbox_options.bind('<<ListboxSelect>>', self.select_lo_item)
         self.listbox_options.place(x=720, y=45)
 
+        self.grayscale_val = tk.BooleanVar()
+        self.grayscale_val.set(0)
+        self.r1 = tk.Radiobutton(builder_tab, text='Grayscale', variable=self.grayscale_val, value = 1)
+        self.r2 = tk.Radiobutton(builder_tab, text='RGB', variable=self.grayscale_val, value = 0)
+        self.r1.place(x=960, y=298)
+        self.r2.place(x=890, y=298)
+
+
         for item in listbox_option_items:
             self.listbox_options.insert(tk.END, item)
 
-        self.listbox_builder = tk.Listbox(self.tasks_canvas, width=75, height=8, font=('times', 10), exportselection=False)
+        self.listbox_builder = tk.Listbox(self.tasks_canvas, width=75, height=8, font=('times', 10), exportselection=False, bd=0)
         self.listbox_builder.bind('<<ListboxSelect>>')
         self.listbox_builder.place(x=50, y=30)
 
         for item_metrik in self.listbox_items_builder:
             self.listbox_builder.insert(tk.END, item_metrik)
         self.listbox_builder.insert(tk.END, 'Default Exit layer')
+
 
         # listbox_items_metrik = ['binary_accuracy', 'categorical_accuracy', 'sparse_categorical_accuracy',
         #                         'top_k_categorical_accuracy', 'sparse_top_k_categorical_accuracy']
@@ -155,6 +179,16 @@ class NNI(tk.Tk):
         #     self.listbox_metrik.insert(tk.END, item_metrik)
 
         self.notebook.pack(fill=tk.BOTH, expand=1)
+
+    def save(self, event):
+
+        if len(self.name.get()) == 0:
+            msg.showwarning('Error', 'Missing model name')
+            return
+
+        self.constructorAPI.save_model(name=self.name.get())
+
+
 
     def browse(self, event):
         self.path.config(state='normal')
@@ -204,11 +238,12 @@ class NNI(tk.Tk):
             msg.showwarning('Error', 'Rho should be a float number >= 0')
             return
 
+
         path = self.path.get()
 
         constructorAPI = NNConstructorAPI()
         try:
-            constructorAPI.set_data(path)
+            constructorAPI.set_data(path, grayscale=self.grayscale_val.get())
         except FileNotFoundError:
             if not path:
                 msg.showwarning('Error', 'You need to enter path to data')
@@ -254,10 +289,12 @@ class NNI(tk.Tk):
             return
         constructorAPI.fit(int(self.batch_size.get()), int(self.epochs.get()))
 
+        self.notebook.tab(1, state="normal")
         self.get_grafic(constructorAPI)
 
     def stop(self, event):
         print('stop')
+        print(self.grayscale_val.get())
 
     def openMenuEnter(self, event):
         pass
@@ -774,16 +811,9 @@ class NNI(tk.Tk):
             print(self.number)
 
     def get_grafic(self, constructor):
-
-        graf_frame = tk.Toplevel(self)
-        graf_frame.title("Graf")
-        graf_frame.geometry("1000x700")
-        graf_frame.resizable(width=False, height=False)
-
-
         model = constructor.model  # model брать из API
 
-        figure = Figure(figsize=(10, 7), dpi=100)
+        figure = Figure(figsize=(9, 8), dpi=75)
         accuracy_plot = figure.add_subplot(211)
 
         #fit, (accuracy_plot, accuracy_plot) = plt.subplots(nrows=1, ncols=2, figsize=(14, 8))
@@ -806,8 +836,10 @@ class NNI(tk.Tk):
         loss_plot.set_ylabel('Loss')
         loss_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
 
-        canvas = FigureCanvasTkAgg(figure, graf_frame)
+        canvas = FigureCanvasTkAgg(figure, self.result_tab)
         canvas.get_tk_widget().grid(row=0, column=0)
+        self.save_button.place(x=1080, y=10)
+        self.constructorAPI = constructor
 
 if __name__ == "__main__":
     nni = NNI()
