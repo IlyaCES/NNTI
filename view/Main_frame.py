@@ -1,18 +1,24 @@
 import pickle
+import queue
 import tkinter as tk
+from multiprocessing.queues import Queue
 from tkinter import filedialog
 from tkinter import messagebox as msg
 from tkinter.ttk import Notebook
+from threading import Thread
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import matplotlib
+from tensorflow_core.python.keras.callbacks import CSVLogger, Callback
+
 matplotlib.use("TkAgg")
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from constructor.API import NNConstructorAPI
 
+import sys
 class NNI(tk.Tk):
 
     listbox_items_builder = ['Default Enter layer']
@@ -21,6 +27,7 @@ class NNI(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        self.log_array = {'accuracy': [], 'val_accuracy': [], 'loss': [], 'val_loss': []}
 
     #Windows option
         self.title("NNI")
@@ -105,7 +112,7 @@ class NNI(tk.Tk):
         self.tasks_canvas.tag_bind(self.minus, '<Button-1>', self.change_layer)
 
     #Text area
-        self.log = tk.Text(self.result_tab, width=100, height=100)
+        self.log = tk.Text(self.result_tab, width=55, height=30)
         self.log.place(x=710, y=50)
 
     #Create Entrys
@@ -241,6 +248,8 @@ class NNI(tk.Tk):
 
         path = self.path.get()
 
+        sys.stdout = self.Logger(self.log)
+
         constructorAPI = NNConstructorAPI()
         try:
             constructorAPI.set_data(path, grayscale=self.grayscale_val.get())
@@ -287,10 +296,31 @@ class NNI(tk.Tk):
         except ValueError as e:
             msg.showwarning('Error', str(e))
             return
-        constructorAPI.fit(int(self.batch_size.get()), int(self.epochs.get()))
+
+        self.queue = queue.Queue()
+        self.get_grafic(constructorAPI)
+        #Thread(target=lambda self.queue: self.fit(constructorAPI)).start()
+        self.ThreadedTask(self.queue, constructorAPI, int(self.batch_size.get()), int(self.epochs.get()), self.PlotsUpdate).start()
+        #constructorAPI.fit(int(self.batch_size.get()), int(self.epochs.get()))
 
         self.notebook.tab(1, state="normal")
-        self.get_grafic(constructorAPI)
+
+    class ThreadedTask(Thread):
+        def __init__(self, queue, api, batch_size, epochs, PlotsUpdate):
+            Thread.__init__(self, daemon=True)
+            self.queue = queue
+            self.api = api
+            self.batch_size = batch_size
+            self.epochs = epochs
+            self.PlotsUpdate = PlotsUpdate
+
+        def run(self):
+            self.api.fit(int(self.batch_size), int(self.epochs), callbacks=[self.PlotsUpdate(self.api, self.queue)])
+
+    # def fit(self, api):
+    #     api.fit(int(self.batch_size.get()), int(self.epochs.get()), callbacks=[self.PlotsUpdate(api.model, self.queue)])
+    #     #self.get_grafic(api)
+
 
     def stop(self, event):
         print('stop')
@@ -767,6 +797,22 @@ class NNI(tk.Tk):
 
     #class place
 
+
+    class Logger(object):
+        def __init__(self, text_field):
+            self.terminal = sys.stdout
+            self.text = text_field
+
+        def write(self, message):
+            self.terminal.write(message)
+            self.text.insert(tk.END, message)
+
+        def flush(self):
+            # this flush method is needed for python 3 compatibility.
+            # this handles the flush command by doing nothing.
+            # you might want to specify some extra behavior here.
+            pass
+
     class layerConvolutional:
         name = "Convolutional layer"
         number = 0
@@ -810,6 +856,28 @@ class NNI(tk.Tk):
         def getNumber(self):
             print(self.number)
 
+    class PlotsUpdate(Callback):
+        def __init__(self, model, queue):
+            super(Callback, self).__init__()
+            #self.my_model = model
+            self.queue = queue
+            # self.accuracy_plot = plots['accuracy_plot']
+            # self.val_accuracy_plot = plots['val_accuracy_plot']
+            # self.loss_plot = plots['loss_plot']
+            # self.val_loss_plot = plots['val_loss_plot']
+            # self.canvas = canvas
+            # self.x = []
+
+        def on_epoch_end(self, epoch, logs=None):
+            self.queue.put(logs)
+            print('putttttttttttttttttttttttttttttttttttttttttttttttttttttt')
+            # self.x.append(epoch)
+            # self.accuracy_plot.set_data(self.x, self.my_model.accuracy)
+            # self.val_accuracy_plot.set_data(self.x, self.my_model.val_accuracy)
+            # self.loss_plot.set_data(self.x, self.my_model.loss)
+            # self.val_loss_plot.set_data(self.x, self.my_model.val_loss)
+            # self.canvas.draw()
+
     def get_grafic(self, constructor):
         model = constructor.model  # model брать из API
 
@@ -818,28 +886,67 @@ class NNI(tk.Tk):
 
         #fit, (accuracy_plot, accuracy_plot) = plt.subplots(nrows=1, ncols=2, figsize=(14, 8))
 
-        x = range(1, len(model.accuracy) + 1)
+        epochs = model.epochs
 
-        accuracy_plot.plot(x, model.accuracy, label='Training')
-        accuracy_plot.plot(x, model.val_accuracy, label='Validation')
+        self.x = []
+
+        self.ap, = accuracy_plot.plot(self.x, [], label='Training')
+        self.avp, = accuracy_plot.plot(self.x, [], label='Validation')
         accuracy_plot.legend()
         accuracy_plot.set_xlabel('Epochs')
         accuracy_plot.set_ylabel('Accuracy')
         accuracy_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
+        accuracy_plot.set_xlim(1, epochs)
 
         loss_plot = figure.add_subplot(212)
 
-        loss_plot.plot(x, model.loss, label='Training')
-        loss_plot.plot(x, model.val_loss, label='Validation')
+        self.lp, = loss_plot.plot(self.x, [], label='Training')
+        self.lvp, = loss_plot.plot(self.x, [], label='Validation')
         loss_plot.legend()
         loss_plot.set_xlabel('Epochs')
         loss_plot.set_ylabel('Loss')
         loss_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
+        accuracy_plot.set_xlim(1, epochs)
 
-        canvas = FigureCanvasTkAgg(figure, self.result_tab)
-        canvas.get_tk_widget().grid(row=0, column=0)
+        self.canvas = FigureCanvasTkAgg(figure, self.result_tab)
+        self.canvas.get_tk_widget().grid(row=0, column=0)
         self.save_button.place(x=1080, y=10)
         self.constructorAPI = constructor
+        self.after(100, self.update_plot)
+
+        self.accuracy_plot = accuracy_plot
+        self.loss_plot = loss_plot
+        print('sdfaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+
+    def update_plot(self):
+        try:
+            logs = self.queue.get(0)
+            if len(self.x):
+                self.x.append(self.x[-1]+1)
+            else:
+                self.x = [1]
+            self.log_array['accuracy'].append(logs['accuracy'])
+            self.log_array['val_accuracy'].append(logs['val_accuracy'])
+            self.log_array['loss'].append(logs['loss'])
+            self.log_array['val_loss'].append(logs['val_loss'])
+            print('test accuracy', self.log_array['accuracy'])
+            # self.ap.set_data(self.x, self.log_array['accuracy'])
+            # self.avp.set_data(self.x, self.log_array['val_accuracy'])
+            # self.lp.set_data(self.x, self.log_array['loss'])
+            # self.lvp.set_data(self.x, self.log_array['val_loss'])
+            self.accuracy_plot.clear()
+            self.loss_plot.clear()
+            self.accuracy_plot.plot(self.x, self.log_array['accuracy'], label='Training')
+            self.accuracy_plot.plot(self.x, self.log_array['val_accuracy'], label='Validation')
+            self.loss_plot.plot(self.x, self.log_array['loss'], label='Training')
+            self.loss_plot.plot(self.x, self.log_array['val_loss'], label='Validation')
+            self.canvas.draw()
+            self.after(100, self.update_plot)
+            print('dfdsafsfaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+        except queue.Empty:
+            print('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
+            self.after(100, self.update_plot)
+
 
 if __name__ == "__main__":
     nni = NNI()

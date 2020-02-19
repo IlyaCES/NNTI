@@ -215,7 +215,7 @@ class NNConstructorAPI:
         self.model.add_layer(Dense(len(self.dataset.labels), activation='softmax'))
         self.model.build()
 
-    def fit(self, batch_size=32, epochs=5):
+    def fit(self, batch_size=32, epochs=5, callbacks=None):
         """Stars training
         :param batch_size: batch size (default = 32)
         :param epochs: number of epochs (default = 5)
@@ -236,4 +236,4 @@ class NNConstructorAPI:
         print(y_test[:5])
         self.model.batch_size = batch_size
         self.model.epochs = epochs
-        self.model.fit((x_train / 255, y_train), (x_test / 255, y_test))
+        self.model.fit((x_train / 255, y_train), (x_test / 255, y_test), callbacks=callbacks)
