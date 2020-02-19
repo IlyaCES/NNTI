@@ -27,7 +27,8 @@ class NNI(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.log_array = {'accuracy': [], 'val_accuracy': [], 'loss': [], 'val_loss': []}
+        self.log_array = None
+        self.x = []
 
     #Windows option
         self.title("NNI")
@@ -250,9 +251,9 @@ class NNI(tk.Tk):
 
         sys.stdout = self.Logger(self.log)
 
-        constructorAPI = NNConstructorAPI()
+        self.constructorAPI = NNConstructorAPI()
         try:
-            constructorAPI.set_data(path, grayscale=self.grayscale_val.get())
+            self.constructorAPI.set_data(path, grayscale=self.grayscale_val.get())
         except FileNotFoundError:
             if not path:
                 msg.showwarning('Error', 'You need to enter path to data')
@@ -263,7 +264,7 @@ class NNI(tk.Tk):
             msg.showwarning('Error', str(e))
             return
 
-        constructorAPI.set_optimizer(algorithm=self.listbox_options.get(self.listbox_options.curselection()),
+        self.constructorAPI.set_optimizer(algorithm=self.listbox_options.get(self.listbox_options.curselection()),
                                      learning_rate=learning_rate,
                                      beta_1=beta_1,
                                      beta_2=beta_2,
@@ -274,52 +275,53 @@ class NNI(tk.Tk):
             temp = self.layerBuffer[i]
             if temp.name == "Convolutional layer":
                 print('Convolutional (filters: ' + temp.filters + "; kernelSize (" + temp.kernelSize_1 + ':' + temp.kernelSize_2 + '))')
-                constructorAPI.add_conv(filters=int(temp.filters),
+                self.constructorAPI.add_conv(filters=int(temp.filters),
                                         kernel_size=(int(temp.kernelSize_1),int(temp.kernelSize_2)),
                                         activation = temp.activations)
             elif temp.name == "Max pooling layer":
                 print("Max pooling layer // poolSize= (" + temp.poolSize_1 + ":" + temp.poolSize_2 + ")")
-                constructorAPI.add_max_pooling(pool_size=(int(temp.poolSize_1), int(temp.poolSize_2)))
+                self.constructorAPI.add_max_pooling(pool_size=(int(temp.poolSize_1), int(temp.poolSize_2)))
             elif temp.name == "Dense layer":
                 print("Dense layer // neurons:" + temp.neurons)
-                constructorAPI.add_dense(int(temp.neurons))
+                self.constructorAPI.add_dense(int(temp.neurons))
             elif temp.name == "Flatten layer":
                 print("Flatten layer")
-                constructorAPI.add_flatten()
+                self.constructorAPI.add_flatten()
             elif temp.name == "Dropout layer":
                 print("Dropout layer (dropout = " + (float(temp.dropNeurons)) + ")")
-                constructorAPI.add_dropout(float(temp.dropNeurons))
+                self.constructorAPI.add_dropout(float(temp.dropNeurons))
             else:
                 print('nice lox')
+
         try:
-            constructorAPI.build()
+            self.constructorAPI.build()
         except ValueError as e:
             msg.showwarning('Error', str(e))
             return
 
         self.queue = queue.Queue()
-        self.get_grafic(constructorAPI)
-        #Thread(target=lambda self.queue: self.fit(constructorAPI)).start()
-        self.ThreadedTask(self.queue, constructorAPI, int(self.batch_size.get()), int(self.epochs.get()), self.PlotsUpdate).start()
-        #constructorAPI.fit(int(self.batch_size.get()), int(self.epochs.get()))
+        self.log_array = {'accuracy': [], 'val_accuracy': [], 'loss': [], 'val_loss': []}
+        self.x = []
+        self.set_plot()
+        self.after(100, self.update_plot)
+        self.ThreadedTask(self.queue, self.constructorAPI,
+                          int(self.batch_size.get()),
+                          int(self.epochs.get()),
+                          self.PlotsUpdate(self.queue)).start()
 
         self.notebook.tab(1, state="normal")
 
     class ThreadedTask(Thread):
-        def __init__(self, queue, api, batch_size, epochs, PlotsUpdate):
+        def __init__(self, queue, api, batch_size, epochs, callback):
             Thread.__init__(self, daemon=True)
             self.queue = queue
             self.api = api
             self.batch_size = batch_size
             self.epochs = epochs
-            self.PlotsUpdate = PlotsUpdate
+            self.callback = callback
 
         def run(self):
-            self.api.fit(int(self.batch_size), int(self.epochs), callbacks=[self.PlotsUpdate(self.api, self.queue)])
-
-    # def fit(self, api):
-    #     api.fit(int(self.batch_size.get()), int(self.epochs.get()), callbacks=[self.PlotsUpdate(api.model, self.queue)])
-    #     #self.get_grafic(api)
+            self.api.fit(int(self.batch_size), int(self.epochs), callbacks=[self.callback])
 
 
     def stop(self, event):
@@ -797,7 +799,6 @@ class NNI(tk.Tk):
 
     #class place
 
-
     class Logger(object):
         def __init__(self, text_field):
             self.terminal = sys.stdout
@@ -808,9 +809,6 @@ class NNI(tk.Tk):
             self.text.insert(tk.END, message)
 
         def flush(self):
-            # this flush method is needed for python 3 compatibility.
-            # this handles the flush command by doing nothing.
-            # you might want to specify some extra behavior here.
             pass
 
     class layerConvolutional:
@@ -857,94 +855,57 @@ class NNI(tk.Tk):
             print(self.number)
 
     class PlotsUpdate(Callback):
-        def __init__(self, model, queue):
+        def __init__(self, queue):
             super(Callback, self).__init__()
-            #self.my_model = model
             self.queue = queue
-            # self.accuracy_plot = plots['accuracy_plot']
-            # self.val_accuracy_plot = plots['val_accuracy_plot']
-            # self.loss_plot = plots['loss_plot']
-            # self.val_loss_plot = plots['val_loss_plot']
-            # self.canvas = canvas
-            # self.x = []
 
         def on_epoch_end(self, epoch, logs=None):
             self.queue.put(logs)
-            print('putttttttttttttttttttttttttttttttttttttttttttttttttttttt')
-            # self.x.append(epoch)
-            # self.accuracy_plot.set_data(self.x, self.my_model.accuracy)
-            # self.val_accuracy_plot.set_data(self.x, self.my_model.val_accuracy)
-            # self.loss_plot.set_data(self.x, self.my_model.loss)
-            # self.val_loss_plot.set_data(self.x, self.my_model.val_loss)
-            # self.canvas.draw()
 
-    def get_grafic(self, constructor):
-        model = constructor.model  # model брать из API
 
+    def set_plot(self):
         figure = Figure(figsize=(9, 8), dpi=75)
-        accuracy_plot = figure.add_subplot(211)
-
-        #fit, (accuracy_plot, accuracy_plot) = plt.subplots(nrows=1, ncols=2, figsize=(14, 8))
-
-        epochs = model.epochs
-
-        self.x = []
-
-        self.ap, = accuracy_plot.plot(self.x, [], label='Training')
-        self.avp, = accuracy_plot.plot(self.x, [], label='Validation')
-        accuracy_plot.legend()
-        accuracy_plot.set_xlabel('Epochs')
-        accuracy_plot.set_ylabel('Accuracy')
-        accuracy_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
-        accuracy_plot.set_xlim(1, epochs)
-
-        loss_plot = figure.add_subplot(212)
-
-        self.lp, = loss_plot.plot(self.x, [], label='Training')
-        self.lvp, = loss_plot.plot(self.x, [], label='Validation')
-        loss_plot.legend()
-        loss_plot.set_xlabel('Epochs')
-        loss_plot.set_ylabel('Loss')
-        loss_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
-        accuracy_plot.set_xlim(1, epochs)
-
-        self.canvas = FigureCanvasTkAgg(figure, self.result_tab)
-        self.canvas.get_tk_widget().grid(row=0, column=0)
-        self.save_button.place(x=1080, y=10)
-        self.constructorAPI = constructor
-        self.after(100, self.update_plot)
-
-        self.accuracy_plot = accuracy_plot
-        self.loss_plot = loss_plot
-        print('sdfaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+        self.accuracy_plot = figure.add_subplot(211)
+        self.loss_plot = figure.add_subplot(212)
+        self.canvas = FigureCanvasTkAgg(figure, self.result_tab)  #
+        self.canvas.get_tk_widget().grid(row=0, column=0)  #
+        self.save_button.place(x=1080, y=10)  #
 
     def update_plot(self):
         try:
-            logs = self.queue.get(0)
-            if len(self.x):
-                self.x.append(self.x[-1]+1)
-            else:
-                self.x = [1]
+            logs = self.queue.get(False)
+
             self.log_array['accuracy'].append(logs['accuracy'])
             self.log_array['val_accuracy'].append(logs['val_accuracy'])
             self.log_array['loss'].append(logs['loss'])
             self.log_array['val_loss'].append(logs['val_loss'])
-            print('test accuracy', self.log_array['accuracy'])
-            # self.ap.set_data(self.x, self.log_array['accuracy'])
-            # self.avp.set_data(self.x, self.log_array['val_accuracy'])
-            # self.lp.set_data(self.x, self.log_array['loss'])
-            # self.lvp.set_data(self.x, self.log_array['val_loss'])
-            self.accuracy_plot.clear()
-            self.loss_plot.clear()
-            self.accuracy_plot.plot(self.x, self.log_array['accuracy'], label='Training')
-            self.accuracy_plot.plot(self.x, self.log_array['val_accuracy'], label='Validation')
-            self.loss_plot.plot(self.x, self.log_array['loss'], label='Training')
-            self.loss_plot.plot(self.x, self.log_array['val_loss'], label='Validation')
-            self.canvas.draw()
+
+            if len(self.x):
+                self.x.append(self.x[-1] + 1)
+
+                self.accuracy_plot.clear()
+                self.loss_plot.clear()
+
+                self.accuracy_plot.plot(self.x, self.log_array['accuracy'], label='Training')
+                self.accuracy_plot.plot(self.x, self.log_array['val_accuracy'], label='Validation')
+                self.accuracy_plot.legend()
+                self.accuracy_plot.set_xlabel('Epochs')
+                self.accuracy_plot.set_ylabel('Accuracy')
+                self.accuracy_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+                self.loss_plot.plot(self.x, self.log_array['loss'], label='Training')
+                self.loss_plot.plot(self.x, self.log_array['val_loss'], label='Validation')
+                self.loss_plot.legend()
+                self.loss_plot.set_xlabel('Epochs')
+                self.loss_plot.set_ylabel('Loss')
+                self.loss_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+                self.canvas.draw()
+            else:
+                self.x = [1]
+
             self.after(100, self.update_plot)
-            print('dfdsafsfaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
         except queue.Empty:
-            print('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
             self.after(100, self.update_plot)
 
 
