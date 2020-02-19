@@ -246,6 +246,22 @@ class NNI(tk.Tk):
             msg.showwarning('Error', 'Rho should be a float number >= 0')
             return
 
+        try:
+            batch_size = int(self.batch_size.get())
+            if batch_size <= 0 or batch_size > 256:
+                raise ValueError()
+        except ValueError:
+            msg.showwarning('Error', 'Batch size should be an integer between 1 and 256')
+            return
+
+        try:
+            epochs = int(self.epochs.get())
+            if epochs <= 0 or epochs > 1000:
+                raise ValueError()
+        except:
+            msg.showwarning('Error', 'Number of epochs should be an integer between 1 and 10000')
+            return
+
 
         path = self.path.get()
 
@@ -305,8 +321,8 @@ class NNI(tk.Tk):
         self.set_plot()
         self.after(100, self.update_plot)
         self.ThreadedTask(self.queue, self.constructorAPI,
-                          int(self.batch_size.get()),
-                          int(self.epochs.get()),
+                          batch_size,
+                          epochs,
                           self.PlotsUpdate(self.queue)).start()
 
         self.notebook.tab(1, state="normal")
