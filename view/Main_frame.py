@@ -223,7 +223,7 @@ class NNI(tk.Tk):
             msg.showwarning('Error', 'Beta 1 should be a float number: 0 < beta_1 < 1')
 
         try:
-            beta_2 = float(self.beta_1.get())
+            beta_2 = float(self.beta_2.get())
             if beta_2 <= 0 or beta_2 >= 1:
                 raise ValueError()
         except ValueError:
@@ -291,21 +291,21 @@ class NNI(tk.Tk):
             temp = self.layerBuffer[i]
             if temp.name == "Convolutional layer":
                 print('Convolutional (filters: ' + temp.filters + "; kernelSize (" + temp.kernelSize_1 + ':' + temp.kernelSize_2 + '))')
-                self.constructorAPI.add_conv(filters=int(temp.filters),
-                                        kernel_size=(int(temp.kernelSize_1),int(temp.kernelSize_2)),
-                                        activation = temp.activations)
+                self.constructorAPI.add_conv(filters=temp.filters,
+                                             kernel_size=(temp.kernelSize_1, temp.kernelSize_2),
+                                             activation=temp.activations)
             elif temp.name == "Max pooling layer":
                 print("Max pooling layer // poolSize= (" + temp.poolSize_1 + ":" + temp.poolSize_2 + ")")
-                self.constructorAPI.add_max_pooling(pool_size=(int(temp.poolSize_1), int(temp.poolSize_2)))
+                self.constructorAPI.add_max_pooling(pool_size=(temp.poolSize_1, temp.poolSize_2))
             elif temp.name == "Dense layer":
                 print("Dense layer // neurons:" + temp.neurons)
-                self.constructorAPI.add_dense(int(temp.neurons))
+                self.constructorAPI.add_dense(temp.neurons)
             elif temp.name == "Flatten layer":
                 print("Flatten layer")
                 self.constructorAPI.add_flatten()
             elif temp.name == "Dropout layer":
-                print("Dropout layer (dropout = " + (float(temp.dropNeurons)) + ")")
-                self.constructorAPI.add_dropout(float(temp.dropNeurons))
+                #print("Dropout layer (dropout = " + (float(temp.dropNeurons)) + ")")
+                self.constructorAPI.add_dropout(temp.dropNeurons)
             else:
                 print('nice lox')
 
@@ -549,6 +549,25 @@ class NNI(tk.Tk):
             layer.add_button.place(x=100, y=265)
 
     def add_Convolutional(self, layer):
+        try:
+            kernel_size_1 = int(layer.kernelSize_1.get())
+            kernel_size_2 = int(layer.kernelSize_2.get())
+            if kernel_size_1 <= 0 or kernel_size_2 <= 0:
+                raise ValueError()
+        except ValueError:
+            msg.showwarning('Error', 'Kernel size should be a pair of ints > 0')
+            return
+
+        try:
+            filters = int(layer.filters.get())
+            if filters <= 0:
+                raise ValueError()
+        except:
+            msg.showwarning('Error', 'Number of filters should be a positive integer')
+            return
+
+        activation = (layer.listbox_conv_layer.get(layer.listbox_conv_layer.curselection()))
+
         newClass = self.layerConvolutional()
         selection = (self.listbox_builder.curselection())
         if self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer':
@@ -557,10 +576,10 @@ class NNI(tk.Tk):
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0]+1, newClass.name)
         self.layerBuffer.insert(selection[0], newClass)
-        newClass.kernelSize_1 = layer.kernelSize_1.get()
-        newClass.kernelSize_2 = layer.kernelSize_2.get()
-        newClass.filters = layer.filters.get()
-        newClass.activations = (layer.listbox_conv_layer.get(layer.listbox_conv_layer.curselection()))
+        newClass.kernelSize_1 = kernel_size_1
+        newClass.kernelSize_2 = kernel_size_2
+        newClass.filters = filters
+        newClass.activations = activation
         print("kernel Size (", newClass.kernelSize_1, ":", newClass.kernelSize_2, ')')
         print("Filters =", newClass.filters)
         print("Activations:", newClass.activations)
@@ -571,6 +590,15 @@ class NNI(tk.Tk):
         self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
     def add_MaxPooling(self, layer):
+        try:
+            pool_size_1 = int(layer.poolSize_1.get())
+            pool_size_2 = int(layer.poolSize_2.get())
+            if pool_size_1 <= 0 or pool_size_2 <= 0:
+                raise ValueError()
+        except ValueError:
+            msg.showwarning('Error', 'Pool size should be a pair of ints > 0')
+            return
+
         newClass = self.layerMaxPooling()
         selection = (self.listbox_builder.curselection())
         if self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer':
@@ -579,8 +607,8 @@ class NNI(tk.Tk):
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
         self.layerBuffer.insert(selection[0], newClass)
-        newClass.poolSize_1 = layer.poolSize_1.get()
-        newClass.poolSize_2 = layer.poolSize_2.get()
+        newClass.poolSize_1 = pool_size_1
+        newClass.poolSize_2 = pool_size_2
         print("poolSize (", newClass.poolSize_1, " : ", newClass.poolSize_2, ')')
         layer.destroy()
         self.listbox_builder.delete(0, tk.END)
@@ -589,6 +617,14 @@ class NNI(tk.Tk):
         self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
     def add_Dense(self, layer):
+        try:
+            neurons = int(layer.neurons.get())
+            if neurons <= 0:
+                raise ValueError()
+        except ValueError:
+            msg.showwarning('Error', 'Number of neurons should be a positive integer')
+            return
+
         newClass = self.layerDense()
         selection = (self.listbox_builder.curselection())
         if self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer':
@@ -597,7 +633,7 @@ class NNI(tk.Tk):
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
         self.layerBuffer.insert(selection[0], newClass)
-        newClass.neurons = layer.neurons.get()
+        newClass.neurons = neurons
         print("neurons=", newClass.neurons)
         layer.destroy()
         self.listbox_builder.delete(0, tk.END)
@@ -621,6 +657,13 @@ class NNI(tk.Tk):
         self.listbox_builder.insert(tk.END, 'Default Exit layer')
 
     def add_Dropout(self, layer):
+        try:
+            drop_rate = float(layer.dropNeurons.get())
+            if not 0 <= drop_rate < 1:
+                raise ValueError()
+        except ValueError:
+            msg.showwarning('Error', 'Drop rate should be a float number between 0 and 1')
+            return
         newClass = self.layerDropout()
         selection = (self.listbox_builder.curselection())
         if self.listbox_builder.get(tk.ANCHOR) == 'Default Exit layer':
@@ -629,7 +672,7 @@ class NNI(tk.Tk):
             newClass.number = selection[0] + 1
         self.listbox_items_builder.insert(selection[0] + 1, newClass.name)
         self.layerBuffer.insert(selection[0], newClass)
-        newClass.dropNeurons = layer.dropNeurons.get()
+        newClass.dropNeurons = drop_rate
         print("dropNeurons", newClass.dropNeurons)
         layer.destroy()
         self.listbox_builder.delete(0, tk.END)
@@ -898,31 +941,33 @@ class NNI(tk.Tk):
 
             if len(self.x):
                 self.x.append(self.x[-1] + 1)
-
-                self.accuracy_plot.clear()
-                self.loss_plot.clear()
-
-                self.accuracy_plot.plot(self.x, self.log_array['accuracy'], label='Training')
-                self.accuracy_plot.plot(self.x, self.log_array['val_accuracy'], label='Validation')
-                self.accuracy_plot.legend()
-                self.accuracy_plot.set_xlabel('Epochs')
-                self.accuracy_plot.set_ylabel('Accuracy')
-                self.accuracy_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
-
-                self.loss_plot.plot(self.x, self.log_array['loss'], label='Training')
-                self.loss_plot.plot(self.x, self.log_array['val_loss'], label='Validation')
-                self.loss_plot.legend()
-                self.loss_plot.set_xlabel('Epochs')
-                self.loss_plot.set_ylabel('Loss')
-                self.loss_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
-
-                self.canvas.draw()
+                self.draw_plot(self.x, self.log_array)
             else:
                 self.x = [1]
 
             self.after(100, self.update_plot)
         except queue.Empty:
             self.after(100, self.update_plot)
+
+    def draw_plot(self, x, log_array):
+        self.accuracy_plot.clear()
+        self.loss_plot.clear()
+
+        self.accuracy_plot.plot(x, log_array['accuracy'], label='Training')
+        self.accuracy_plot.plot(x, log_array['val_accuracy'], label='Validation')
+        self.accuracy_plot.legend()
+        self.accuracy_plot.set_xlabel('Epochs')
+        self.accuracy_plot.set_ylabel('Accuracy')
+        self.accuracy_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        self.loss_plot.plot(x, log_array['loss'], label='Training')
+        self.loss_plot.plot(x, log_array['val_loss'], label='Validation')
+        self.loss_plot.legend()
+        self.loss_plot.set_xlabel('Epochs')
+        self.loss_plot.set_ylabel('Loss')
+        self.loss_plot.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        self.canvas.draw()
 
 
 if __name__ == "__main__":
