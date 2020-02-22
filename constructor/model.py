@@ -32,7 +32,6 @@ class Model(object):
             self.layers.append(layer)
         else:
             self.layers.insert(index, layer)
-        print(self.layers)
 
     def delete_layer(self, layer):
         """Deletes layer from model
@@ -104,7 +103,6 @@ class Model(object):
         # self.val_loss = history.history['val_loss']
         # self.accuracy = history.history['accuracy']
         # self.val_accuracy = history.history['val_accuracy']
-        print(self.loss, self.val_loss, self.accuracy, self.val_accuracy)
 
 
 class LossAndAccuracyUpdate(Callback):

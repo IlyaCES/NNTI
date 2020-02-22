@@ -226,9 +226,18 @@ class NNI(tk.Tk):
 
         self.constructorAPI.load_model(name=(self.listbox_folder.get(self.listbox_folder.curselection())))
 
-        ###################################################################################################################
-        # TODO INSERT GR
-        ###################################################################################################################
+        self.set_plot()
+        self.draw_plot(range(1, self.constructorAPI.model.epochs+1), {'accuracy': self.constructorAPI.model.accuracy,
+                                                                      'val_accuracy': self.constructorAPI.model.val_accuracy,
+                                                                      'loss': self.constructorAPI.model.loss,
+                                                                      'val_loss': self.constructorAPI.model.val_loss})
+
+        self.log.delete(1.0, tk.END)
+        self.log.insert(tk.END, 'Model was trained for ' + str(self.constructorAPI.model.epochs) + ' epochs\n')
+        self.log.insert(tk.END, 'Total training accuracy: ' + str(self.constructorAPI.model.accuracy[-1]) + '\n')
+        self.log.insert(tk.END, 'Total validation accuracy: ' + str(self.constructorAPI.model.val_accuracy[-1]) + '\n')
+        self.log.insert(tk.END, 'Total training loss: ' + str(self.constructorAPI.model.loss[-1]) + '\n')
+        self.log.insert(tk.END, 'Total validation loss: ' + str(self.constructorAPI.model.val_loss[-1]) + '\n')
 
         self.notebook.tab(1, state="normal")
         self.notebook.select(1)
@@ -959,6 +968,7 @@ class NNI(tk.Tk):
         def write(self, message):
             self.terminal.write(message)
             self.text.insert(tk.END, message)
+            self.text.see(tk.END)
 
         def flush(self):
             pass
