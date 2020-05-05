@@ -72,3 +72,4 @@ class Dataset(object):
         y = self._y_test if test else self._y_train
         for class_folder in self._labels:
             y.extend([class_folder] * len(os.listdir(path + '/' + class_folder)))
+

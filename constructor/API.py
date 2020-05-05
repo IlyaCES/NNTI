@@ -197,7 +197,7 @@ class NNConstructorAPI:
         """Builds model"""
 
         if len(self.model.layers) == 0:
-            raise ValueError('cannot be build with 0 layers')
+            raise ValueError('you have trained empty model. No results')
 
         self.dataset.load_data()
 
